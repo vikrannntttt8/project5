@@ -1181,7 +1181,7 @@ html, body {
    12. Leaflet Map Overrides
    ========================================================================== */
 .leaflet-tile {
-  /* CartoDB Dark Matter tiles are natively dark and clean; no CSS filter required */
+  filter: invert(100%) grayscale(100%) brightness(88%) contrast(95%);
 }
 
 .leaflet-container {

@@ -199,17 +199,26 @@ Thus, Leaflet requests tile:
 ### 5.4 Viewport Streaming & Panning
 Leaflet monitors the pixel bounds of the browser window. When initialized, it calculates which subset of $(x, y)$ tiles overlap the visible screen rectangle (usually 12 to 20 tiles) and fetches only those images via asynchronous HTTP `GET` requests. When the user drags (pans) the map, Leaflet computes the newly uncovered grid coordinates, fetches the new tile images, and discards tiles that have moved far outside the screen buffer.
 
-### 5.5 CartoDB Dark Matter Tiles & Clean Rendering
-Rather than applying an artificial CSS color-inversion filter over standard day tiles (which can cause neon color artifacts), Jugnu loads CartoDB Dark Matter raster tiles:
-`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` (using subdomains `abcd`).
+### 5.5 Grayscale Dark-Mode Tile Filter (Zero Neon Colors, Zero Watermarks)
+Jugnu streams standard OpenStreetMap raster tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`), which completely avoids third-party commercial watermarks. To achieve a sleek dark theme with zero neon tinting, a clean grayscale inversion filter is applied to `.leaflet-tile`:
 
-- **Natively Dark:** Dark Matter tiles are designed specifically for dark themes, rendering roads in soft grays, land in deep charcoal (`#09090B` family), and water bodies in muted slate.
-- **Zero Inversion Artifacts:** Because the tiles are naturally dark, no `filter: invert(...)` or `hue-rotate(...)` is applied to `.leaflet-tile`.
-- **Pure Overlay Vibrancy:** All safety zones (Green, Amber, Red) and marker drop shadows render with 100% color fidelity and no halo distortion.
+```css
+.leaflet-tile {
+  filter: invert(100%) grayscale(100%) brightness(88%) contrast(95%);
+}
+.leaflet-container {
+  background: #09090B;
+}
+```
 
-### 5.6 OpenStreetMap & CARTO Attribution
-Jugnu complies with open-source tile policies by displaying the required attribution:
-`&copy; OpenStreetMap contributors &copy; CARTO`.
+- `invert(100%)`: Transforms white road networks and light map backgrounds into dark tones.
+- `grayscale(100%)`: Strips out all color channels, preventing artificial neon or inverted color artifacts.
+- `brightness(88%) contrast(95%)`: Produces soft, cohesive dark charcoal shades matching the app surface tokens.
+- **Why this does not affect pins or zones:** The filter targets `.leaflet-tile` exclusively. Markers and vector paths are rendered into separate Leaflet overlay panes (`.leaflet-marker-pane` and `.leaflet-overlay-pane`), which sit on higher DOM z-indices and do not inherit the tile filter. As a result, green, amber, and red safety zones stay vibrant and true to their intended color.
+
+### 5.6 OpenStreetMap Tile Usage Policy & Attribution
+OpenStreetMap tile servers are funded by volunteer and charitable donations. Their usage policy requires human-facing applications to display attribution:
+`&copy; OpenStreetMap contributors` with a link to `https://www.openstreetmap.org/copyright`.
 
 ---
 
@@ -848,8 +857,8 @@ When rendering user-entered text (such as landmark notes or street names), assig
 **Q3: How does Leaflet know which tiles to download?**
 *Answer:* Leaflet converts the geographic bounding box of the browser window into $(x, y)$ tile indices using the Web Mercator projection formula, fetching only the specific tiles visible inside the current viewport.
 
-**Q4: How did you implement dark mode on the map tiles without neon artifacts?**
-*Answer:* We load CartoDB Dark Matter tiles (`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`), which are natively designed in clean dark charcoal and slate. This eliminates artificial CSS color-inversion filters and keeps green, amber, and red safety zones completely vibrant with zero color distortion.
+**Q4: How did you implement dark mode on the map tiles without neon artifacts or watermarks?**
+*Answer:* We stream standard OpenStreetMap tiles to avoid commercial watermarks, and apply a clean hardware-accelerated CSS filter (`invert(100%) grayscale(100%) brightness(88%) contrast(95%)`) strictly to `.leaflet-tile`. By removing color channels with `grayscale(100%)`, roads and terrain become soft dark grays with zero neon colors, while markers and safety zones remain 100% vibrant.
 
 **Q5: How does Jugnu prevent fake or prank reports?**
 *Answer:* Jugnu implements peer verification. A report requires multiple community confirmations to achieve "Community Verified" status. Furthermore, if three independent users mark a report as "Resolved", the report is soft-deleted and removed from the live map.
