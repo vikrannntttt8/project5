@@ -45,7 +45,7 @@
 // Connected to live cloud backend
 const SUPABASE_CONFIG = {
   url: "https://jkcgqhxvofzhhzcyrketx.supabase.co",
-  anonKey: "sb_publishable_hweGaRiXpjHt2NYDrS2ow_hVRk"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2dxaHh2b2Z6aGh6Y3lrZXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUxODcsImV4cCI6MjEwODE4MTE4N30.tHe6q5y6eKPAEkJoJx7lBQ3nYgJkG7EJlISahsN5Z4U"
 };
 
 class SafetyStore {
@@ -88,7 +88,13 @@ class SafetyStore {
 
       // Check runtime overrides or defaults
       const storedUrl = localStorage.getItem("jugnu_supabase_url");
-      const storedKey = localStorage.getItem("jugnu_supabase_key");
+      let storedKey = localStorage.getItem("jugnu_supabase_key");
+      // Clear old legacy key from previous sessions
+      if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key")) {
+        try { localStorage.removeItem("jugnu_supabase_key"); } catch {}
+        storedKey = null;
+      }
+
       const config = {
         url: storedUrl || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || SUPABASE_CONFIG.url,
         anonKey: storedKey || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || SUPABASE_CONFIG.anonKey
