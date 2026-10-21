@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09090B">
+  <meta name="description" content="Crowd-sourced street safety and streetlight map for women. Check real-time street safety before you step out and warn others in seconds.">
+  <title>Jugnu - Women's Safety Map</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet 1.9.4 CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- Application Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Live Map Viewport -->
+  <div id="map"></div>
+
+  <!-- Top Navigation & Search Bar -->
+  <header class="top-bar">
+    <form id="search-form" class="search-form" role="search" onsubmit="return false;">
+      <div class="search-box">
+        <span class="search-icon-box" aria-hidden="true">
+          <i data-lucide="search"></i>
+        </span>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search station, college, locality..."
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="Search places in Mumbai"
+        >
+        <button type="button" id="search-clear" class="search-clear hidden" aria-label="Clear search query">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div id="search-results" class="search-results hidden" role="region" aria-label="Search results"></div>
+    </form>
+
+    <!-- Horizontally Scrollable Filter Pills -->
+    <div id="filter-bar" class="filter-bar" role="toolbar" aria-label="Filter safety reports">
+      <button type="button" class="pill is-active" data-filter="all">
+        <i data-lucide="layers"></i>
+        <span>All Reports</span>
+      </button>
+      <button type="button" class="pill" data-filter="unsafe">
+        <i data-lucide="shield-alert"></i>
+        <span>Unsafe Only</span>
+      </button>
+      <button type="button" class="pill" data-filter="caution">
+        <i data-lucide="triangle-alert"></i>
+        <span>Caution</span>
+      </button>
+      <button type="button" class="pill" data-filter="safe">
+        <i data-lucide="shield-check"></i>
+        <span>Safe Zones</span>
+      </button>
+      <button type="button" class="pill" data-filter="night">
+        <i data-lucide="moon"></i>
+        <span>Nighttime Reports Only</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Solid Flat Scrim Overlay -->
+  <div id="scrim" class="scrim hidden" aria-hidden="true"></div>
+
+  <!-- Custom Desktop Zoom Controls (pointer: fine only) -->
+  <aside class="desktop-zoom-controls" aria-label="Map zoom controls">
+    <button type="button" id="btn-zoom-in" class="zoom-btn" aria-label="Zoom in">
+      <i data-lucide="plus"></i>
+    </button>
+    <button type="button" id="btn-zoom-out" class="zoom-btn" aria-label="Zoom out">
+      <i data-lucide="minus"></i>
+    </button>
+  </aside>
+
+  <!-- Welcome / Entry Bottom Sheet -->
+  <section id="welcome-sheet" class="sheet welcome-sheet" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-content welcome-content">
+      <div class="welcome-header">
+        <div class="wordmark-row">
+          <div class="brand-badge" aria-hidden="true">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h1 id="welcome-title" class="brand-name">Jugnu</h1>
+        </div>
+        <p class="tagline">Know the street before you step onto it.</p>
+        <p class="welcome-desc">Check how safe a street feels right now, and warn other women in seconds.</p>
+      </div>
+
+      <div class="legend-list" role="list">
+        <div class="legend-item" role="listitem">
+          <div class="legend-icon-box legend-safe" aria-hidden="true">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <div class="legend-text">
+            <strong class="legend-title">Safe and well-lit</strong>
+            <span class="legend-sub">Working lights, people around, open shops, guards.</span>
+          </div>
+        </div>
+
+        <div class="legend-item" role="listitem">
+          <div class="legend-icon-box legend-caution" aria-hidden="true">
+            <i data-lucide="triangle-alert"></i>
+          </div>
+          <div class="legend-text">
+            <strong class="legend-title">Caution</strong>
+            <span class="legend-sub">Dim lights, isolated at night, stray dogs, no shops.</span>
+          </div>
+        </div>
+
+        <div class="legend-item" role="listitem">
+          <div class="legend-icon-box legend-unsafe" aria-hidden="true">
+            <i data-lucide="shield-alert"></i>
+          </div>
+          <div class="legend-text">
+            <strong class="legend-title">Unsafe</strong>
+            <span class="legend-sub">Pitch dark, broken lights, harassment reported.</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" id="btn-open-map" class="btn-primary btn-large">
+        <span>Open Live Safety Map</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Inspection Card (Opens when a pin is tapped) -->
+  <section id="inspect-card" class="sheet inspect-card hidden" role="dialog" aria-modal="false" aria-labelledby="inspect-area">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-content inspect-content">
+      <div class="inspect-header-row">
+        <div class="inspect-title-group">
+          <h2 id="inspect-area" class="inspect-area">Area Name</h2>
+          <div class="inspect-badges-row">
+            <span id="inspect-badge" class="inspect-badge">Safe</span>
+            <span id="inspect-daynight" class="inspect-daynight">
+              <i data-lucide="moon"></i>
+              <span>Night report</span>
+            </span>
+          </div>
+        </div>
+        <button type="button" id="btn-close-inspect" class="btn-close" aria-label="Close details card">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div id="inspect-tags" class="inspect-tags"></div>
+      <p id="inspect-note" class="inspect-note"></p>
+
+      <div class="inspect-meta">
+        <span id="inspect-time" class="inspect-time">Reported recently</span>
+        <span id="inspect-trust" class="inspect-trust">Confirmed by community</span>
+      </div>
+
+      <div class="inspect-actions">
+        <button type="button" id="btn-confirm" class="btn-inspect btn-confirm">
+          <i data-lucide="check"></i>
+          <span>Confirm Still True (+1)</span>
+        </button>
+        <button type="button" id="btn-resolve" class="btn-inspect btn-resolve">
+          <i data-lucide="badge-check"></i>
+          <span>Mark Resolved</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Incident Reporting Sheet -->
+  <section id="report-sheet" class="sheet report-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="report-title" class="sheet-title">Report this street</h2>
+      <button type="button" id="btn-close-report" class="btn-close" aria-label="Close report sheet">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="sheet-content report-content">
+      <div class="report-area-row">
+        <i data-lucide="map-pin"></i>
+        <span id="report-area">Finding street name...</span>
+      </div>
+
+      <div class="form-section">
+        <label class="section-label">How does this spot feel?</label>
+        <div id="status-options" class="status-options" role="radiogroup" aria-label="Safety Level">
+          <button type="button" class="status-btn" data-status="safe" role="radio" aria-checked="false">
+            <i data-lucide="shield-check"></i>
+            <span>Safe</span>
+          </button>
+          <button type="button" class="status-btn" data-status="caution" role="radio" aria-checked="false">
+            <i data-lucide="triangle-alert"></i>
+            <span>Caution</span>
+          </button>
+          <button type="button" class="status-btn" data-status="unsafe" role="radio" aria-checked="false">
+            <i data-lucide="shield-alert"></i>
+            <span>Unsafe</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="section-label">Conditions (tap all that apply)</label>
+        <div id="chip-group" class="chip-group" role="group" aria-label="Street conditions">
+          <p class="chip-placeholder">Select a safety level above to choose conditions.</p>
+        </div>
+      </div>
+
+      <div class="form-section note-field-group">
+        <div class="note-header">
+          <label for="note-input" class="section-label">Landmark note (optional)</label>
+          <span id="note-count" class="note-count">0/140</span>
+        </div>
+        <input
+          type="text"
+          id="note-input"
+          class="note-input"
+          maxlength="140"
+          placeholder="Landmark, e.g. Behind Metro Pillar 142"
+          autocomplete="off"
+        >
+      </div>
+
+      <button type="button" id="btn-publish" class="btn-primary btn-publish" disabled>
+        <i data-lucide="send"></i>
+        <span>Publish Report</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Bottom Thumb Navigation Dock -->
+  <nav class="dock" aria-label="Bottom Navigation">
+    <button type="button" id="btn-locate" class="dock-btn" aria-label="Locate my position">
+      <div class="dock-icon">
+        <i data-lucide="locate-fixed"></i>
+      </div>
+      <span class="dock-label">Locate</span>
+    </button>
+
+    <button type="button" id="btn-report" class="dock-btn dock-btn-primary" aria-label="Report safety at this spot">
+      <div class="dock-icon-box">
+        <i data-lucide="plus"></i>
+      </div>
+      <span class="dock-label">Report</span>
+    </button>
+
+    <button type="button" id="btn-exit-call" class="dock-btn" aria-label="Trigger fake exit call">
+      <div class="dock-icon">
+        <i data-lucide="phone-incoming"></i>
+      </div>
+      <span class="dock-label">Exit Call</span>
+    </button>
+
+    <button type="button" id="btn-sos" class="dock-btn dock-btn-sos" aria-label="Send emergency WhatsApp SOS">
+      <div class="dock-icon">
+        <i data-lucide="siren"></i>
+      </div>
+      <span class="dock-label">SOS</span>
+    </button>
+  </nav>
+
+  <!-- System Notification Toast -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- Fullscreen Fake Incoming Call Screen -->
+  <div id="call-screen" class="call-screen hidden" role="dialog" aria-modal="true" aria-label="Incoming call">
+    <div class="call-top">
+      <span class="call-type">mobile</span>
+      <h1 id="call-name" class="call-name">Papa</h1>
+      <span id="call-status" class="call-status">Calling...</span>
+    </div>
+
+    <div class="call-avatar" aria-hidden="true">
+      <i data-lucide="user"></i>
+    </div>
+
+    <div id="call-controls" class="call-controls ringing">
+      <div class="incoming-actions">
+        <button type="button" id="btn-decline" class="call-circle-btn btn-call-decline" aria-label="Decline call">
+          <div class="call-btn-icon">
+            <i data-lucide="phone-off"></i>
+          </div>
+          <span class="call-btn-label">Decline</span>
+        </button>
+        <button type="button" id="btn-answer" class="call-circle-btn btn-call-answer" aria-label="Answer call">
+          <div class="call-btn-icon">
+            <i data-lucide="phone"></i>
+          </div>
+          <span class="call-btn-label">Answer</span>
+        </button>
+      </div>
+
+      <div class="active-actions hidden">
+        <div class="active-grid">
+          <button type="button" class="call-toggle-btn" aria-label="Toggle mute">
+            <i data-lucide="mic-off"></i>
+            <span>Mute</span>
+          </button>
+          <button type="button" class="call-toggle-btn" aria-label="Show keypad">
+            <i data-lucide="grid-3x3"></i>
+            <span>Keypad</span>
+          </button>
+          <button type="button" class="call-toggle-btn" aria-label="Toggle speaker">
+            <i data-lucide="volume-2"></i>
+            <span>Speaker</span>
+          </button>
+        </div>
+        <button type="button" id="btn-end-call" class="call-circle-btn btn-call-end" aria-label="End call">
+          <div class="call-btn-icon">
+            <i data-lucide="phone-off"></i>
+          </div>
+          <span class="call-btn-label">End Call</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pinned CDN Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
+
+  <!-- Application Logic -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
