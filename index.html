@@ -24,28 +24,37 @@
 
   <!-- Top Navigation & Search Bar -->
   <header class="top-bar">
-    <form id="search-form" class="search-form" role="search" onsubmit="return false;">
-      <div class="search-box">
-        <span class="search-icon-box" aria-hidden="true">
-          <i data-lucide="search"></i>
-        </span>
-        <input
-          type="search"
-          id="search-input"
-          class="search-input"
-          placeholder="Search station, college, locality..."
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          aria-label="Search places in Mumbai"
-        >
-        <button type="button" id="search-clear" class="search-clear hidden" aria-label="Clear search query">
-          <i data-lucide="x"></i>
-        </button>
-      </div>
-      <div id="search-results" class="search-results hidden" role="region" aria-label="Search results"></div>
-    </form>
+    <div class="search-row">
+      <form id="search-form" class="search-form" role="search" onsubmit="return false;">
+        <div class="search-box">
+          <span class="search-icon-box" aria-hidden="true">
+            <i data-lucide="search"></i>
+          </span>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search station, college, locality..."
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label="Search places in Mumbai"
+          >
+          <button type="button" id="search-clear" class="search-clear hidden" aria-label="Clear search query">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="search-results" class="search-results hidden" role="region" aria-label="Search results"></div>
+      </form>
+
+      <button type="button" id="btn-account" class="btn-account" aria-label="Account and Cloud Sync">
+        <div class="account-icon-wrap" id="account-avatar">
+          <i data-lucide="user"></i>
+        </div>
+        <span id="account-label" class="account-label">Sign In</span>
+      </button>
+    </div>
 
     <!-- Horizontally Scrollable Filter Pills -->
     <div id="filter-bar" class="filter-bar" role="toolbar" aria-label="Filter safety reports">
@@ -250,6 +259,91 @@
     </div>
   </section>
 
+  <!-- Authentication & Cloud Sync Modal -->
+  <section id="auth-modal" class="sheet auth-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="auth-title" class="sheet-title">Account & Cloud Sync</h2>
+      <button type="button" id="btn-close-auth" class="btn-close" aria-label="Close authentication modal">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="sheet-content auth-content">
+      <!-- Signed In View -->
+      <div id="auth-user-view" class="auth-view hidden">
+        <div class="auth-profile-card">
+          <div class="auth-avatar" id="auth-avatar-initials">U</div>
+          <div class="auth-user-info">
+            <span class="auth-status-label">Signed in to Cloud</span>
+            <strong id="auth-user-email" class="auth-user-email">user@example.com</strong>
+          </div>
+        </div>
+        <p class="auth-desc">Your safety reports and confirmations are synchronized in real time with Supabase Cloud.</p>
+        <button type="button" id="btn-sign-out" class="btn-secondary btn-large">
+          <i data-lucide="log-out"></i>
+          <span>Sign Out</span>
+        </button>
+      </div>
+
+      <!-- Signed Out / Login View -->
+      <div id="auth-login-view" class="auth-view">
+        <div class="auth-intro">
+          <div class="auth-icon-badge" aria-hidden="true">
+            <i data-lucide="cloud"></i>
+          </div>
+          <div class="auth-intro-text">
+            <strong class="auth-intro-title">Sync Safety Reports Live</strong>
+            <span class="auth-intro-sub">Sign in with Supabase to contribute verified reports across devices.</span>
+          </div>
+        </div>
+
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab is-active" id="tab-magic-link" role="tab" aria-selected="true">Magic Link</button>
+          <button type="button" class="auth-tab" id="tab-password" role="tab" aria-selected="false">Email & Password</button>
+        </div>
+
+        <form id="auth-form" class="auth-form" onsubmit="return false;">
+          <div class="form-section">
+            <label for="auth-email" class="section-label">Email Address</label>
+            <input
+              type="email"
+              id="auth-email"
+              class="note-input"
+              placeholder="name@example.com"
+              required
+              autocomplete="email"
+            >
+          </div>
+
+          <div class="form-section hidden" id="group-password">
+            <label for="auth-password" class="section-label">Password</label>
+            <input
+              type="password"
+              id="auth-password"
+              class="note-input"
+              placeholder="Enter password"
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" id="btn-auth-submit" class="btn-primary btn-large">
+            <i data-lucide="send"></i>
+            <span id="btn-auth-label">Send Magic Link</span>
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+
+        <button type="button" id="btn-continue-guest" class="btn-guest">
+          <span>Continue as Guest (Local Offline Mode)</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Bottom Thumb Navigation Dock -->
   <nav class="dock" aria-label="Bottom Navigation">
     <button type="button" id="btn-locate" class="dock-btn" aria-label="Locate my position">
@@ -340,6 +434,7 @@
   <!-- Pinned CDN Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Application Logic -->
   <script src="data.js"></script>

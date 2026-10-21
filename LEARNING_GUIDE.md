@@ -56,18 +56,21 @@ Below is an architectural diagram showing how files, browser storage, libraries,
 |           |                                                           |           |
 |           v                                                           |           |
 |  +--------------------+        +--------------------+                 |           |
-|  |      data.js       | <----> |    localStorage    |                 |           |
+|  |      data.js       | <----> |    localStorage    | (Offline Cache) |           |
 |  |  (SafetyStore Data |        | (jugnu_reports_v1, |                 |           |
 |  |  Access Layer)     |        |   jugnu_votes)     |                 |           |
 |  +--------------------+        +--------------------+                 |           |
-+-----------------------------------------------------------------------+-----------+
-            |                                           ^
-            | Network Requests (fetch / tiles)          | CDN Assets
-            v                                           v
-+-----------------------+   +-----------------------+   +-----------------------+
-|   OpenStreetMap CDN   |   |     Nominatim API     |   |   Lucide Icons CDN    |
-| (Raster Tile Stream)  |   |   (Search & Reverse)  |   |    (v0.441.0 UMD)     |
-+-----------------------+   +-----------------------+   +-----------------------+
+|           |                                                           |           |
++-----------|-----------------------------------------------------------|-----------+
+            |                                                           |
+            | Supabase SDK v2 (Async REST / Auth)                       | CDN Assets
+            v                                                           v
++------------------------------------+             +--------------------------------+
+|         Supabase Cloud             |             |       OpenStreetMap & CDN      |
+|  - Table: public.reports           |             |  - OpenStreetMap Tile Server   |
+|  - Supabase Auth (OTP / Password)  |             |  - Nominatim Search API        |
+|  - Postgres with Row Level Security|             |  - Lucide Icons (v0.441.0 UMD) |
++------------------------------------+             +--------------------------------+
 ```
 
 ---
@@ -77,29 +80,42 @@ Below is an architectural diagram showing how files, browser storage, libraries,
 ### 3.1 `index.html`
 - **Single Responsibility:** Defines the semantic structure, DOM elements, and accessibility skeleton of the application.
 - **What It Must Never Do:** It must never contain business logic, direct coordinate calculations, event listeners, inline style tags, or raw emoji characters.
-- **Dependencies:** Loads Google Fonts, Leaflet CSS, `styles.css`, Leaflet JS, Lucide JS, and the project script files.
+- **Dependencies:** Loads Google Fonts, Leaflet CSS, `styles.css`, Leaflet JS, Lucide JS, Supabase SDK v2, and the project script files.
 
 ### 3.2 `styles.css`
-- **Single Responsibility:** Defines the visual design system, CSS custom properties (design tokens), component layouts, dark map tile filters, marker animations, and media queries.
+- **Single Responsibility:** Defines the visual design system, CSS custom properties (design tokens), component layouts, dark map tile filters, marker animations, auth modal, and media queries.
 - **What It Must Never Do:** It must never use gradients on UI surfaces, backdrop-filter blur blobs, or font sizes below 13px.
 - **Dependencies:** Consumes class names and IDs provided by `index.html`.
 
 ### 3.3 `data.js`
-- **Single Responsibility:** Acts as the data abstraction layer (Model). Manages report validation, Mumbai seed reports, community confirmations, resolution counts, and `localStorage` serialization.
+- **Single Responsibility:** Acts as the data abstraction layer (Model). Manages report validation, Mumbai seed reports, community confirmations, resolution counts, asynchronous Supabase persistence, authentication helpers, and `localStorage` offline fallback.
+- **Supabase Cloud Schema (`reports` table):**
+  - `id` (uuid, primary key, default `gen_random_uuid()`)
+  - `lat` (float8)
+  - `lng` (float8)
+  - `status` (text: 'safe', 'caution', 'unsafe')
+  - `tags` (text[] or jsonb)
+  - `note` (text)
+  - `area_name` (text)
+  - `timestamp` (bigint)
+  - `confirmations` (int8)
+  - `resolved_count` (int8)
+  - `user_email` (text)
 - **What It Must Never Do:** It must never interact with the DOM, attach event listeners, call `alert()`, or reference `L` (Leaflet). It is completely headless and testable in isolation.
-- **Dependencies:** None. Operates solely using native JavaScript and standard browser storage.
+- **Dependencies:** Optional Supabase client via `window.supabase.createClient`. Gracefully falls back to browser `localStorage` if unconfigured.
 
 ### 3.4 `app.js`
-- **Single Responsibility:** Acts as the Controller. Initializes the Leaflet map, binds user gestures, coordinates place search and reverse geocoding, orchestrates the fake call audio synthesizer, and synchronizes the UI sheets with the data store.
+- **Single Responsibility:** Acts as the Controller. Initializes the Leaflet map, binds user gestures, coordinates place search and reverse geocoding, orchestrates authentication modals, and handles async report publishing and voting.
 - **What It Must Never Do:** It must never write directly to raw `localStorage` keys; all data persistence must be delegated through `SafetyStore`.
-- **Dependencies:** Depends on `SafetyStore` (from `data.js`), `L` (from Leaflet), and `lucide` (from Lucide CDN).
+- **Dependencies:** Depends on `SafetyStore` (from `data.js`), `L` (from Leaflet), `lucide` (from Lucide CDN), and Supabase SDK.
 
 ### 3.5 Script Load Order Rationale
 In `index.html`, scripts are intentionally included in the following sequential order:
 1. `https://unpkg.com/leaflet@1.9.4/dist/leaflet.js` (Initializes global `L`)
 2. `https://unpkg.com/lucide@0.441.0/dist/umd/lucide.min.js` (Initializes global `lucide`)
-3. `data.js` (Declares global class `SafetyStore`)
-4. `app.js` (Instantiates `new SafetyStore()`, accesses `L`, and initializes UI)
+3. `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2` (Initializes global `window.supabase`)
+4. `data.js` (Declares global class `SafetyStore` and connects to Supabase)
+5. `app.js` (Instantiates `new SafetyStore()`, accesses `L`, and initializes UI)
 
 `data.js` must be evaluated prior to `app.js` because `app.js` immediately creates an instance of `SafetyStore` when DOM content is loaded. If `app.js` were loaded first, the browser would throw a `ReferenceError: SafetyStore is not defined`.
 

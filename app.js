@@ -36,7 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ringtoneInterval: null,
     callTimerInterval: null,
     callSeconds: 0,
-    isCallPending: false
+    isCallPending: false,
+    currentUser: null,
+    authMode: "magic-link"
   };
 
   // Inline SVG glyph paths for map pins (Lucide stroke format)
@@ -133,6 +135,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     refreshIcons();
     maybeShowWelcome();
+
+    // Initialize Supabase Auth Session
+    checkAuthState();
+
+    // Subscribe to Supabase Auth State Changes
+    store.onAuthStateChange((event, session) => {
+      updateAuthUI(session?.user || null);
+    });
+
+    // Fetch reports asynchronously from Supabase Cloud
+    store.fetchReports().then(() => {
+      renderReports();
+    }).catch(err => {
+      console.warn("Initial Supabase reports fetch handled:", err);
+    });
   }
 
   /**
@@ -338,6 +355,137 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+    // Authentication & Cloud Sync Modal Triggers
+    const btnAccount = document.getElementById("btn-account");
+    if (btnAccount) {
+      btnAccount.addEventListener("click", () => {
+        openSheet(document.getElementById("auth-modal"));
+      });
+    }
+
+    const btnCloseAuth = document.getElementById("btn-close-auth");
+    if (btnCloseAuth) {
+      btnCloseAuth.addEventListener("click", () => {
+        closeSheet(document.getElementById("auth-modal"));
+      });
+    }
+
+    // Auth Mode Tabs (Magic Link vs Email & Password)
+    const tabMagicLink = document.getElementById("tab-magic-link");
+    const tabPassword = document.getElementById("tab-password");
+    const groupPassword = document.getElementById("group-password");
+    const btnAuthLabel = document.getElementById("btn-auth-label");
+
+    if (tabMagicLink && tabPassword) {
+      tabMagicLink.addEventListener("click", () => {
+        tabMagicLink.classList.add("is-active");
+        tabMagicLink.setAttribute("aria-selected", "true");
+        tabPassword.classList.remove("is-active");
+        tabPassword.setAttribute("aria-selected", "false");
+        groupPassword?.classList.add("hidden");
+        const authPassword = document.getElementById("auth-password");
+        if (authPassword) authPassword.required = false;
+        if (btnAuthLabel) btnAuthLabel.textContent = "Send Magic Link";
+        state.authMode = "magic-link";
+      });
+
+      tabPassword.addEventListener("click", () => {
+        tabPassword.classList.add("is-active");
+        tabPassword.setAttribute("aria-selected", "true");
+        tabMagicLink.classList.remove("is-active");
+        tabMagicLink.setAttribute("aria-selected", "false");
+        groupPassword?.classList.remove("hidden");
+        const authPassword = document.getElementById("auth-password");
+        if (authPassword) authPassword.required = true;
+        if (btnAuthLabel) btnAuthLabel.textContent = "Sign In or Sign Up";
+        state.authMode = "password";
+      });
+    }
+
+    // Auth Form Submission
+    const authForm = document.getElementById("auth-form");
+    if (authForm) {
+      authForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById("auth-email");
+        const passInput = document.getElementById("auth-password");
+        const email = emailInput ? emailInput.value.trim() : "";
+        const password = passInput ? passInput.value : "";
+
+        if (!email) {
+          showToast("Please enter a valid email address.");
+          return;
+        }
+
+        if (!store.isConfigured()) {
+          showToast("Supabase is not configured. Add your Project URL and Key in data.js to enable cloud auth.");
+          return;
+        }
+
+        const submitBtn = document.getElementById("btn-auth-submit");
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          if (state.authMode === "magic-link") {
+            await store.signInWithOtp(email);
+            showToast("Magic link sent. Check your inbox to sign in.");
+            closeSheet(document.getElementById("auth-modal"));
+          } else {
+            // Password mode: attempt signIn first, fallback to signUp if credentials not found
+            try {
+              await store.signInWithPassword(email, password);
+              showToast("Signed in successfully.");
+              const user = await store.getCurrentUser();
+              updateAuthUI(user);
+              closeSheet(document.getElementById("auth-modal"));
+            } catch (signInErr) {
+              if (signInErr.message && (signInErr.message.includes("Invalid login credentials") || signInErr.message.includes("User not found"))) {
+                try {
+                  await store.signUpWithPassword(email, password);
+                  showToast("Account created. Check your email for confirmation.");
+                  const user = await store.getCurrentUser();
+                  updateAuthUI(user);
+                  closeSheet(document.getElementById("auth-modal"));
+                } catch (signUpErr) {
+                  showToast(signUpErr.message || "Authentication failed.");
+                }
+              } else {
+                showToast(signInErr.message || "Authentication failed.");
+              }
+            }
+          }
+        } catch (err) {
+          showToast(err.message || "Sign in failed. Check your connection.");
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Sign Out Button
+    const btnSignOut = document.getElementById("btn-sign-out");
+    if (btnSignOut) {
+      btnSignOut.addEventListener("click", async () => {
+        try {
+          await store.signOut();
+          updateAuthUI(null);
+          showToast("Signed out successfully.");
+          closeSheet(document.getElementById("auth-modal"));
+        } catch (err) {
+          showToast("Sign out error: " + err.message);
+        }
+      });
+    }
+
+    // Continue as Guest Button
+    const btnContinueGuest = document.getElementById("btn-continue-guest");
+    if (btnContinueGuest) {
+      btnContinueGuest.addEventListener("click", () => {
+        closeSheet(document.getElementById("auth-modal"));
+        showToast("Continuing as guest in local offline mode.");
+      });
+    }
+
     // Global Keydown (Escape closes top sheet)
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
@@ -369,6 +517,55 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       welcomeSheet.classList.remove("is-open");
       welcomeSheet.classList.add("hidden");
+    }
+  }
+
+  /**
+   * Updates UI based on user authentication state.
+   * @param {Object|null} user - Supabase user object or null.
+   */
+  function updateAuthUI(user) {
+    state.currentUser = user;
+    const authUserView = document.getElementById("auth-user-view");
+    const authLoginView = document.getElementById("auth-login-view");
+    const accountLabel = document.getElementById("account-label");
+    const accountAvatar = document.getElementById("account-avatar");
+    const authUserEmail = document.getElementById("auth-user-email");
+    const authAvatarInitials = document.getElementById("auth-avatar-initials");
+
+    if (user && user.email) {
+      if (authUserView) authUserView.classList.remove("hidden");
+      if (authLoginView) authLoginView.classList.add("hidden");
+
+      const initial = user.email.charAt(0).toUpperCase();
+      if (authUserEmail) authUserEmail.textContent = user.email;
+      if (authAvatarInitials) authAvatarInitials.textContent = initial;
+
+      if (accountLabel) accountLabel.textContent = user.email.split("@")[0];
+      if (accountAvatar) {
+        accountAvatar.innerHTML = `<div class="account-avatar-badge">${initial}</div>`;
+      }
+    } else {
+      if (authUserView) authUserView.classList.add("hidden");
+      if (authLoginView) authLoginView.classList.remove("hidden");
+
+      if (accountLabel) accountLabel.textContent = "Sign In";
+      if (accountAvatar) {
+        accountAvatar.innerHTML = '<i data-lucide="user"></i>';
+      }
+      refreshIcons();
+    }
+  }
+
+  /**
+   * Checks initial authentication session from Supabase on startup.
+   */
+  async function checkAuthState() {
+    try {
+      const user = await store.getCurrentUser();
+      updateAuthUI(user);
+    } catch {
+      updateAuthUI(null);
     }
   }
 
@@ -636,28 +833,29 @@ document.addEventListener("DOMContentLoaded", () => {
   /**
    * Handles user tapping "Confirm Still True (+1)".
    */
-  function onConfirm() {
+  async function onConfirm() {
     if (!state.activeReportId) return;
 
-    const updated = store.confirm(state.activeReportId);
+    const id = state.activeReportId;
+    const updated = await store.upvoteReport(id);
     if (!updated) {
       showToast("You have already voted on this report.");
       return;
     }
 
     showToast("Thanks. Confirmation added.");
-    openInspect(state.activeReportId);
+    openInspect(id);
     renderReports();
   }
 
   /**
    * Handles user tapping "Mark Resolved".
    */
-  function onResolve() {
+  async function onResolve() {
     if (!state.activeReportId) return;
 
     const id = state.activeReportId;
-    const updated = store.resolve(id);
+    const updated = await store.resolveReport(id);
     if (!updated) {
       showToast("You have already voted on this report.");
       return;
@@ -941,8 +1139,12 @@ document.addEventListener("DOMContentLoaded", () => {
   /**
    * Validates and submits the new report, adds it to the store, and updates the map.
    */
-  function publishReport() {
-    if (!state.selectedStatus || !state.targetLatLng) return;
+  async function publishReport() {
+    if (!state.selectedStatus || !state.targetLatLng || state.isSubmitting) return;
+
+    state.isSubmitting = true;
+    const btnPublish = document.getElementById("btn-publish");
+    if (btnPublish) btnPublish.disabled = true;
 
     const areaEl = document.getElementById("report-area");
     const noteInput = document.getElementById("note-input");
@@ -952,7 +1154,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tags = Array.from(state.selectedChips);
 
     try {
-      const report = store.add({
+      const report = await store.addReport({
         lat: state.targetLatLng.lat,
         lng: state.targetLatLng.lng,
         status: state.selectedStatus,
@@ -972,6 +1174,9 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Report published. Thank you for keeping others safe.");
     } catch (err) {
       showToast("Could not publish report: " + err.message);
+    } finally {
+      state.isSubmitting = false;
+      if (btnPublish) btnPublish.disabled = false;
     }
   }
 
