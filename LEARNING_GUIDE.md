@@ -425,8 +425,19 @@ All 10+ report pins and circular zones reside in a single `L.layerGroup` assigne
   3. Sorts reports so `safe` zones render first, followed by `caution`, then `unsafe` on top.
   4. Creates 120 m radius circles and teardrop pin markers.
   5. Binds click listener on markers to call `openInspect(id)`.
+  6. Calls `updateReportsInViewCount()` to refresh the active reports counter badge.
 - **Why Written This Way:** Sorting ensures red (unsafe) zones are never hidden underneath green zones.
 - **Common Bugs:** Missing `L.DomEvent.stopPropagation(e)` on marker click, causing a new report target to be dropped right under the marker.
+
+#### `updateReportsInViewCount()`
+- **One-Sentence Description:** Calculates the count of active reports currently situated inside the map viewport bounds and updates the top badge.
+- **Step-by-Step Logic:**
+  1. Queries `#reports-count-text` DOM element.
+  2. Reads visible reports for current filter and map bounds via `state.map.getBounds()`.
+  3. Tests each report coordinate with `bounds.contains([lat, lng])`.
+  4. Formats count text ("X active safety reports in view") and updates badge text.
+- **Why Written This Way:** Provides real-time geographic awareness as the user pans and zooms across neighborhoods.
+- **Common Bugs:** Calling `getBounds()` before Leaflet has completed its initial container sizing.
 
 #### `buildPinIcon(status, dim)`
 - **One-Sentence Description:** Creates a custom Leaflet `DivIcon` containing an inline teardrop SVG, Lucide glyph, and pulse ring.

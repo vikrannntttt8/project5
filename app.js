@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     state.map = L.map("map", {
       center: [19.0760, 72.8777],
-      zoom: 12,
+      zoom: 14,
       zoomControl: false,
       preferCanvas: false // SVG rendering required for zone glow drop-shadow filters
     });
@@ -109,6 +109,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Map Click Handler for starting/moving reports or closing open sheets
     state.map.on("click", (e) => {
       onMapClick(e);
+    });
+
+    // Dynamic viewport bounds listener for live reports in view counter badge
+    state.map.on("moveend", () => {
+      updateReportsInViewCount();
+    });
+    state.map.on("zoomend", () => {
+      updateReportsInViewCount();
     });
   }
 
@@ -381,6 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (reports.length === 0) {
       showToast("No reports match this filter here.");
+      updateReportsInViewCount();
       return;
     }
 
@@ -408,6 +417,29 @@ document.addEventListener("DOMContentLoaded", () => {
       marker.addTo(state.reportLayer);
       state.markersById[report.id] = marker;
     });
+
+    updateReportsInViewCount();
+  }
+
+  /**
+   * Recalculates and updates the live count of reports currently within map viewport bounds.
+   */
+  function updateReportsInViewCount() {
+    const badgeText = document.getElementById("reports-count-text");
+    if (!badgeText || !state.map) return;
+
+    const bounds = state.map.getBounds();
+    const visibleReports = store.getVisible(state.currentFilter);
+    let countInView = 0;
+
+    visibleReports.forEach(report => {
+      if (bounds.contains([report.lat, report.lng])) {
+        countInView++;
+      }
+    });
+
+    const label = countInView === 1 ? "1 active safety report in view" : `${countInView} active safety reports in view`;
+    badgeText.textContent = label;
   }
 
   /**
@@ -425,9 +457,10 @@ document.addEventListener("DOMContentLoaded", () => {
       : (status === "caution" ? '<div class="pin-pulse pin-pulse-caution"></div>' : '');
 
     const dimStyle = dim ? 'style="opacity: 0.55;"' : '';
+    const unsafeClass = status === "unsafe" ? "jugnu-pin-wrap-unsafe" : "";
 
     const html = `
-      <div class="jugnu-pin-wrap" ${dimStyle}>
+      <div class="jugnu-pin-wrap ${unsafeClass}" ${dimStyle}>
         ${pulseHtml}
         <svg class="jugnu-pin" width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 47C20 47 38 29.5 38 18C38 8.05887 29.9411 0 20 0C10.0589 0 2 8.05887 2 18C2 29.5 20 47 20 47Z" fill="${color}"/>
