@@ -25,6 +25,13 @@
   <!-- Top Navigation & Search Bar -->
   <header class="top-bar">
     <div class="search-row">
+      <button type="button" id="btn-account" class="btn-account" aria-label="Account and Cloud Sync">
+        <div class="account-icon-wrap" id="account-avatar">
+          <i data-lucide="user"></i>
+        </div>
+        <span id="account-label" class="account-label">Sign In</span>
+      </button>
+
       <form id="search-form" class="search-form" role="search" onsubmit="return false;">
         <div class="search-box">
           <span class="search-icon-box" aria-hidden="true">
@@ -47,13 +54,6 @@
         </div>
         <div id="search-results" class="search-results hidden" role="region" aria-label="Search results"></div>
       </form>
-
-      <button type="button" id="btn-account" class="btn-account" aria-label="Account and Cloud Sync">
-        <div class="account-icon-wrap" id="account-avatar">
-          <i data-lucide="user"></i>
-        </div>
-        <span id="account-label" class="account-label">Sign In</span>
-      </button>
     </div>
 
     <!-- Horizontally Scrollable Filter Pills -->
@@ -270,6 +270,16 @@
     </div>
 
     <div class="sheet-content auth-content">
+      <!-- Intercept Notice for Pin Reporting -->
+      <div id="auth-guard-notice" class="auth-notice hidden" role="alert">
+        <div class="auth-notice-icon" aria-hidden="true">
+          <i data-lucide="shield-alert"></i>
+        </div>
+        <p id="auth-notice-text" class="auth-notice-text">
+          Please sign in or create an account to report safety incidents to the community.
+        </p>
+      </div>
+
       <!-- Signed In View -->
       <div id="auth-user-view" class="auth-view hidden">
         <div class="auth-profile-card">
@@ -327,11 +337,34 @@
             >
           </div>
 
-          <button type="submit" id="btn-auth-submit" class="btn-primary btn-large">
-            <i data-lucide="send"></i>
-            <span id="btn-auth-label">Send Magic Link</span>
-          </button>
+          <div class="auth-btn-group">
+            <button type="submit" id="btn-auth-submit" class="btn-primary btn-large">
+              <i data-lucide="send"></i>
+              <span id="btn-auth-label">Send Magic Link</span>
+            </button>
+            <button type="button" id="btn-auth-signup" class="btn-secondary btn-large hidden">
+              <i data-lucide="user-plus"></i>
+              <span>Create Account</span>
+            </button>
+          </div>
         </form>
+
+        <details class="auth-advanced-details">
+          <summary class="auth-advanced-summary">Cloud Connection Settings</summary>
+          <div class="auth-advanced-body">
+            <label for="cfg-supabase-key" class="section-label">Custom Supabase Anon Key / JWT</label>
+            <input
+              type="text"
+              id="cfg-supabase-key"
+              class="note-input"
+              placeholder="Paste full JWT or custom anon key"
+              autocomplete="off"
+            >
+            <button type="button" id="btn-save-key" class="btn-secondary btn-small">
+              <span>Save & Reconnect</span>
+            </button>
+          </div>
+        </details>
 
         <div class="auth-divider">
           <span>or</span>

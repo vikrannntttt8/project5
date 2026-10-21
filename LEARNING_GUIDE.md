@@ -136,10 +136,12 @@ In `index.html`, scripts are intentionally included in the following sequential 
 10. `maybeShowWelcome()` checks `localStorage.getItem("jugnu_onboarded")`. If absent, it opens `#welcome-sheet` over `#scrim`.
 
 ### 4.2 Trace B: User Publishing a Street Report
-1. The user taps an unpinned spot on the map.
-2. The Leaflet click listener triggers `onMapClick(e)`.
-3. `onMapClick` calls `placeTarget(e.latlng)`.
-4. `placeTarget`:
+1. The user taps an unpinned spot on the map or hits the "+ Report" bottom dock button.
+2. The Leaflet click listener triggers `onMapClick(e)`, which invokes `placeTarget(e.latlng)`.
+3. **Authentication Guard Check:** `placeTarget` checks if `state.currentUser` is present.
+   - If **NOT** authenticated: `placeTarget` intercepts execution, caches the coordinates in `state.pendingReportLatLng`, suppresses `#report-sheet`, and pops open `#auth-modal` with the notice: *"Please sign in or create an account to report safety incidents to the community."*
+   - Once authenticated (via Magic Link or Email/Password), `updateAuthUI` detects `state.pendingReportLatLng`, closes the auth modal, and automatically triggers `placeTarget` on the saved coordinates.
+4. If authenticated:
    - Places an amber target marker (`target-ring-container`) at the clicked coordinates.
    - Computes a vertical offset and pans the map so the target rests in the top 30% of the screen.
    - Clears any existing debounce timer and schedules `reverseGeocode({ lat, lng })` after 800 ms.
@@ -152,8 +154,8 @@ In `index.html`, scripts are intentionally included in the following sequential 
 8. The user selects two chips and types a landmark in `#note-input`.
 9. `updatePublishState()` detects a valid status and removes the `disabled` attribute from `#btn-publish`.
 10. The user taps "Publish Report", which invokes `publishReport()`.
-11. `publishReport()` calls `store.add({ lat, lng, status, tags, note, areaName })`.
-12. `store.add` validates coordinates and vocabulary, generates a unique ID (`"r_" + timestamp + random`), derives `isNightReport`, saves the updated list to `localStorage`, and records an author vote in `jugnu_votes`.
+11. `publishReport()` calls `await store.addReport({ lat, lng, status, tags, note, areaName })`.
+12. `store.addReport` validates coordinates and vocabulary, fetches the authenticated user's email/ID, pushes the record directly to the Supabase Cloud `reports` table, updates the local cache, and records an author vote in `jugnu_votes`.
 13. `publishReport` closes the report sheet, removes the target ring marker, calls `renderReports()` to drop the new pin onto the map with a 300 ms CSS drop-in animation, centers on it, and shows a confirmation toast: "Report published. Thank you for keeping others safe."
 
 ### 4.3 Trace C: User Tapping "Confirm Still True"

@@ -126,25 +126,29 @@ html, body {
 
 .btn-account {
   height: 52px;
-  padding: 0 14px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: 10px;
+  background: rgba(18, 18, 21, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius);
   color: var(--text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   flex-shrink: 0;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
 
 .btn-account:hover, .btn-account:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(28, 28, 33, 0.95);
   border-color: var(--accent);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
 }
 
 .account-icon-wrap {
@@ -774,6 +778,74 @@ html, body {
 .btn-guest:hover {
   color: var(--text);
   border-color: var(--text-muted);
+}
+
+.auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-radius: var(--radius);
+  color: var(--text);
+  animation: fadeIn 200ms ease;
+}
+
+.auth-notice-icon {
+  color: var(--unsafe);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.auth-notice-icon i, .auth-notice-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-notice-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.auth-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-small {
+  height: 40px;
+  font-size: 13px;
+  padding: 0 14px;
+}
+
+.auth-advanced-details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.auth-advanced-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-advanced-summary:hover {
+  color: var(--text);
+}
+
+.auth-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .wordmark-row {

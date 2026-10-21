@@ -38,7 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
     callSeconds: 0,
     isCallPending: false,
     currentUser: null,
-    authMode: "magic-link"
+    authMode: "magic-link",
+    pendingReportLatLng: null
   };
 
   // Inline SVG glyph paths for map pins (Lucide stroke format)
@@ -359,7 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnAccount = document.getElementById("btn-account");
     if (btnAccount) {
       btnAccount.addEventListener("click", () => {
-        openSheet(document.getElementById("auth-modal"));
+        showAuthModal();
       });
     }
 
@@ -375,6 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabPassword = document.getElementById("tab-password");
     const groupPassword = document.getElementById("group-password");
     const btnAuthLabel = document.getElementById("btn-auth-label");
+    const btnAuthSignup = document.getElementById("btn-auth-signup");
 
     if (tabMagicLink && tabPassword) {
       tabMagicLink.addEventListener("click", () => {
@@ -383,6 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tabPassword.classList.remove("is-active");
         tabPassword.setAttribute("aria-selected", "false");
         groupPassword?.classList.add("hidden");
+        btnAuthSignup?.classList.add("hidden");
         const authPassword = document.getElementById("auth-password");
         if (authPassword) authPassword.required = false;
         if (btnAuthLabel) btnAuthLabel.textContent = "Send Magic Link";
@@ -395,14 +398,15 @@ document.addEventListener("DOMContentLoaded", () => {
         tabMagicLink.classList.remove("is-active");
         tabMagicLink.setAttribute("aria-selected", "false");
         groupPassword?.classList.remove("hidden");
+        btnAuthSignup?.classList.remove("hidden");
         const authPassword = document.getElementById("auth-password");
         if (authPassword) authPassword.required = true;
-        if (btnAuthLabel) btnAuthLabel.textContent = "Sign In or Sign Up";
+        if (btnAuthLabel) btnAuthLabel.textContent = "Sign In";
         state.authMode = "password";
       });
     }
 
-    // Auth Form Submission
+    // Auth Form Submission (Sign In with Password or Magic Link)
     const authForm = document.getElementById("auth-form");
     if (authForm) {
       authForm.addEventListener("submit", async (e) => {
@@ -431,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast("Magic link sent. Check your inbox to sign in.");
             closeSheet(document.getElementById("auth-modal"));
           } else {
-            // Password mode: attempt signIn first, fallback to signUp if credentials not found
+            // Password mode: attempt signIn
             try {
               await store.signInWithPassword(email, password);
               showToast("Signed in successfully.");
@@ -439,25 +443,67 @@ document.addEventListener("DOMContentLoaded", () => {
               updateAuthUI(user);
               closeSheet(document.getElementById("auth-modal"));
             } catch (signInErr) {
-              if (signInErr.message && (signInErr.message.includes("Invalid login credentials") || signInErr.message.includes("User not found"))) {
-                try {
-                  await store.signUpWithPassword(email, password);
-                  showToast("Account created. Check your email for confirmation.");
-                  const user = await store.getCurrentUser();
-                  updateAuthUI(user);
-                  closeSheet(document.getElementById("auth-modal"));
-                } catch (signUpErr) {
-                  showToast(signUpErr.message || "Authentication failed.");
-                }
-              } else {
-                showToast(signInErr.message || "Authentication failed.");
-              }
+              showToast(signInErr.message || "Invalid credentials. Try Create Account if you are new.");
             }
           }
         } catch (err) {
           showToast(err.message || "Sign in failed. Check your connection.");
         } finally {
           if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Create Account Button (Direct Sign Up)
+    if (btnAuthSignup) {
+      btnAuthSignup.addEventListener("click", async () => {
+        const emailInput = document.getElementById("auth-email");
+        const passInput = document.getElementById("auth-password");
+        const email = emailInput ? emailInput.value.trim() : "";
+        const password = passInput ? passInput.value : "";
+
+        if (!email || !password) {
+          showToast("Please enter both email and password to create an account.");
+          return;
+        }
+
+        btnAuthSignup.disabled = true;
+        try {
+          await store.signUpWithPassword(email, password);
+          showToast("Account created successfully. Check your email or sign in.");
+          const user = await store.getCurrentUser();
+          if (user) {
+            updateAuthUI(user);
+            closeSheet(document.getElementById("auth-modal"));
+          }
+        } catch (err) {
+          showToast(err.message || "Sign up failed.");
+        } finally {
+          btnAuthSignup.disabled = false;
+        }
+      });
+    }
+
+    // Custom Supabase Key Reconnection
+    const btnSaveKey = document.getElementById("btn-save-key");
+    if (btnSaveKey) {
+      btnSaveKey.addEventListener("click", async () => {
+        const keyInput = document.getElementById("cfg-supabase-key");
+        const customKey = keyInput ? keyInput.value.trim() : "";
+        if (!customKey) {
+          showToast("Please enter a valid Supabase Anon Key or JWT.");
+          return;
+        }
+        store.setCredentials(null, customKey);
+        showToast("Cloud credentials updated. Reconnecting to Supabase...");
+        try {
+          await store.fetchReports();
+          renderReports();
+          const user = await store.getCurrentUser();
+          updateAuthUI(user);
+          showToast("Connected to Supabase Cloud.");
+        } catch (err) {
+          showToast("Supabase connection: " + err.message);
         }
       });
     }
@@ -481,6 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnContinueGuest = document.getElementById("btn-continue-guest");
     if (btnContinueGuest) {
       btnContinueGuest.addEventListener("click", () => {
+        state.pendingReportLatLng = null;
         closeSheet(document.getElementById("auth-modal"));
         showToast("Continuing as guest in local offline mode.");
       });
@@ -521,6 +568,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
+   * Opens the Auth Modal, optionally showing an intercept guard notice.
+   * @param {string|null} noticeMessage - Optional notice text to display.
+   */
+  function showAuthModal(noticeMessage = null) {
+    const noticeEl = document.getElementById("auth-guard-notice");
+    const noticeText = document.getElementById("auth-notice-text");
+
+    if (noticeMessage) {
+      if (noticeText) noticeText.textContent = noticeMessage;
+      if (noticeEl) noticeEl.classList.remove("hidden");
+    } else {
+      if (noticeEl) noticeEl.classList.add("hidden");
+    }
+
+    openSheet(document.getElementById("auth-modal"));
+  }
+
+  /**
    * Updates UI based on user authentication state.
    * @param {Object|null} user - Supabase user object or null.
    */
@@ -544,6 +609,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (accountLabel) accountLabel.textContent = user.email.split("@")[0];
       if (accountAvatar) {
         accountAvatar.innerHTML = `<div class="account-avatar-badge">${initial}</div>`;
+      }
+
+      // If user was prompted to sign in to drop a pin, resume pin placement
+      if (state.pendingReportLatLng) {
+        const pending = state.pendingReportLatLng;
+        state.pendingReportLatLng = null;
+        closeSheet(document.getElementById("auth-modal"));
+        setTimeout(() => {
+          placeTarget(pending);
+          showToast("Signed in. You can now publish your safety report.");
+        }, 320);
       }
     } else {
       if (authUserView) authUserView.classList.add("hidden");
@@ -935,9 +1011,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Drops the amber target ring marker at latlng and opens the Report Sheet.
+   * Requires user to be authenticated before opening the report sheet.
    * @param {L.LatLng|Object} latlng - Target coordinates.
    */
   function placeTarget(latlng) {
+    // Authentication Guard for Pin Reporting
+    if (!state.currentUser) {
+      const lat = typeof latlng.lat === "number" ? latlng.lat : latlng[0];
+      const lng = typeof latlng.lng === "number" ? latlng.lng : latlng[1];
+      state.pendingReportLatLng = { lat, lng };
+
+      showAuthModal("Please sign in or create an account to report safety incidents to the community.");
+      return;
+    }
+
     const lat = typeof latlng.lat === "number" ? latlng.lat : latlng[0];
     const lng = typeof latlng.lng === "number" ? latlng.lng : latlng[1];
 

@@ -42,10 +42,10 @@
 "use strict";
 
 // Supabase Configuration
-// Replace with your real Supabase credentials to enable cloud persistence
+// Connected to live cloud backend
 const SUPABASE_CONFIG = {
-  url: "https://your-project.supabase.co",
-  anonKey: "your-anon-key"
+  url: "https://jkcgqhxvofzhhzcyrketx.supabase.co",
+  anonKey: "sb_publishable_hweGaRiXpjHt2NYDrS2ow_hVRk"
 };
 
 class SafetyStore {
@@ -97,7 +97,7 @@ class SafetyStore {
       // Ensure keys are not default placeholders
       const isPlaceholder = !config.url || !config.anonKey ||
         config.url.includes("your-project.supabase.co") ||
-        config.anonKey.includes("your-anon-key");
+        config.anonKey === "your-anon-key";
 
       if (!isPlaceholder) {
         this.client = window.supabase.createClient(config.url, config.anonKey);
@@ -106,6 +106,19 @@ class SafetyStore {
       console.warn("Supabase client initialization skipped:", err);
       this.client = null;
     }
+  }
+
+  /**
+   * Updates Supabase credentials at runtime and reconnects.
+   * @param {string} url
+   * @param {string} anonKey
+   * @returns {boolean} True if successfully connected.
+   */
+  setCredentials(url, anonKey) {
+    if (url) localStorage.setItem("jugnu_supabase_url", url.trim());
+    if (anonKey) localStorage.setItem("jugnu_supabase_key", anonKey.trim());
+    this._initClient();
+    return this.isConfigured();
   }
 
   /**
