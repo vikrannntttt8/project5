@@ -5,15 +5,6 @@
  */
 "use strict";
 
-// Supabase Configuration
-const SUPABASE_CONFIG = (typeof window !== "undefined" && window.SUPABASE_CONFIG) || {
-  url: "https://jkcgqhxvofzhhzcyrketx.supabase.co",
-  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2dxaHh2b2Z6aGh6Y3lrZXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUxODcsImV4cCI6MjEwODE4MTE4N30.tHe6q5y6eKPAEkJoJx7lBQ3nYgJkG7EJlISahsN5Z4U"
-};
-if (typeof window !== "undefined") {
-  window.SUPABASE_CONFIG = SUPABASE_CONFIG;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   // Global Store Instance
   const store = new SafetyStore();
