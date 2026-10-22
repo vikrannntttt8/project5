@@ -369,16 +369,24 @@
         <details class="auth-advanced-details">
           <summary class="auth-advanced-summary">Cloud Connection Settings</summary>
           <div class="auth-advanced-body">
-            <label for="cfg-supabase-key" class="section-label">Custom Supabase Anon Key / JWT</label>
+            <label for="cfg-supabase-url" class="section-label">Supabase Project URL</label>
+            <input
+              type="url"
+              id="cfg-supabase-url"
+              class="note-input"
+              placeholder="https://your-project.supabase.co"
+              autocomplete="off"
+            >
+            <label for="cfg-supabase-key" class="section-label">Supabase Anon Key / JWT</label>
             <input
               type="text"
               id="cfg-supabase-key"
               class="note-input"
-              placeholder="Paste full JWT or custom anon key"
+              placeholder="Paste public anon key or JWT"
               autocomplete="off"
             >
             <button type="button" id="btn-save-key" class="btn-secondary btn-small">
-              <span>Save & Reconnect</span>
+              <span>Save & Connect</span>
             </button>
           </div>
         </details>

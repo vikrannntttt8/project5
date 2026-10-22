@@ -380,7 +380,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnGoogleAuth) {
       btnGoogleAuth.addEventListener("click", async () => {
         if (!store.isConfigured()) {
-          showToast("Supabase is not configured. Add your Project URL and Key in data.js to enable cloud auth.");
+          showToast("Supabase is not configured. Please paste your active Supabase URL and Anon Key in Cloud Connection Settings below.");
+          const detailsEl = document.querySelector(".auth-advanced-details");
+          if (detailsEl) detailsEl.open = true;
+          const urlInput = document.getElementById("cfg-supabase-url");
+          if (urlInput) urlInput.focus();
           return;
         }
         btnGoogleAuth.disabled = true;
@@ -524,17 +528,40 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Custom Supabase Key Reconnection
+    // Custom Supabase Key & URL Reconnection
+    const cfgUrlInput = document.getElementById("cfg-supabase-url");
+    const cfgKeyInput = document.getElementById("cfg-supabase-key");
+    if (cfgUrlInput) {
+      const currentUrl = store.getUrl();
+      if (currentUrl && !currentUrl.includes("your-project") && !currentUrl.includes("jkcgqhxvofzhhzcyrketx")) {
+        cfgUrlInput.value = currentUrl;
+      }
+    }
+    if (cfgKeyInput) {
+      const currentKey = store.getKey();
+      if (currentKey && currentKey !== "your-anon-key") {
+        cfgKeyInput.value = currentKey;
+      }
+    }
+
     const btnSaveKey = document.getElementById("btn-save-key");
     if (btnSaveKey) {
       btnSaveKey.addEventListener("click", async () => {
-        const keyInput = document.getElementById("cfg-supabase-key");
-        const customKey = keyInput ? keyInput.value.trim() : "";
-        if (!customKey) {
+        const customUrl = cfgUrlInput ? cfgUrlInput.value.trim() : "";
+        const customKey = cfgKeyInput ? cfgKeyInput.value.trim() : "";
+        if (!customUrl && (!store.getUrl() || store.getUrl().includes("your-project"))) {
+          showToast("Please enter your active Supabase Project URL.");
+          return;
+        }
+        if (!customKey || customKey === "your-anon-key") {
           showToast("Please enter a valid Supabase Anon Key or JWT.");
           return;
         }
-        store.setCredentials(null, customKey);
+        const connected = store.setCredentials(customUrl || null, customKey);
+        if (!connected) {
+          showToast("Please verify your Supabase URL and Anon Key.");
+          return;
+        }
         showToast("Cloud credentials updated. Reconnecting to Supabase...");
         try {
           await store.fetchReports();

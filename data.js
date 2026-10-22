@@ -42,10 +42,10 @@
 "use strict";
 
 // Supabase Configuration
-// Connected to live cloud backend
+// Default placeholder - update with your active Supabase project URL and public Anon Key
 var SUPABASE_CONFIG = (typeof window !== "undefined" && window.SUPABASE_CONFIG) ? window.SUPABASE_CONFIG : {
-  url: "https://jkcgqhxvofzhhzcyrketx.supabase.co",
-  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2dxaHh2b2Z6aGh6Y3lrZXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUxODcsImV4cCI6MjEwODE4MTE4N30.tHe6q5y6eKPAEkJoJx7lBQ3nYgJkG7EJlISahsN5Z4U"
+  url: "https://your-project.supabase.co",
+  anonKey: "your-anon-key"
 };
 
 if (typeof window !== "undefined") {
@@ -87,30 +87,37 @@ class SafetyStore {
   _initClient() {
     try {
       if (typeof window.supabase === "undefined" || !window.supabase || typeof window.supabase.createClient !== "function") {
+        this.client = null;
         return;
       }
 
       // Check runtime overrides or defaults
-      const storedUrl = localStorage.getItem("jugnu_supabase_url");
+      let storedUrl = localStorage.getItem("jugnu_supabase_url");
       let storedKey = localStorage.getItem("jugnu_supabase_key");
-      // Clear old legacy key or mismatched key to ensure anonymous key is cleanly initialized
-      if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key" || storedKey !== SUPABASE_CONFIG.anonKey)) {
+
+      // Purge defunct or placeholder URLs from previous test sessions
+      if (storedUrl && (storedUrl.includes("jkcgqhxvofzhhzcyrketx") || storedUrl.includes("your-project.supabase.co"))) {
+        try { localStorage.removeItem("jugnu_supabase_url"); } catch { }
+        storedUrl = null;
+      }
+      if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key")) {
         try { localStorage.removeItem("jugnu_supabase_key"); } catch { }
         storedKey = null;
       }
-      // Strictly enforce Supabase URL: clear any mismatched or outdated stored URL
-      if (storedUrl && storedUrl !== SUPABASE_CONFIG.url) {
-        try { localStorage.removeItem("jugnu_supabase_url"); } catch { }
-      }
+
+      const defaultUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || SUPABASE_CONFIG.url || "";
+      const defaultKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || SUPABASE_CONFIG.anonKey || "";
 
       const config = {
-        url: SUPABASE_CONFIG.url,
-        anonKey: storedKey || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || SUPABASE_CONFIG.anonKey
+        url: (storedUrl && storedUrl.trim()) || defaultUrl,
+        anonKey: (storedKey && storedKey.trim()) || defaultKey
       };
 
-      // Ensure keys are not default placeholders
+      // Ensure keys are not default placeholders or defunct URLs
       const isPlaceholder = !config.url || !config.anonKey ||
         config.url.includes("your-project.supabase.co") ||
+        config.url.includes("your-project-id.supabase.co") ||
+        config.url.includes("jkcgqhxvofzhhzcyrketx") ||
         config.anonKey === "your-anon-key";
 
       if (!isPlaceholder) {
@@ -119,6 +126,9 @@ class SafetyStore {
         if (window.supabase && !window.supabase.auth) {
           window.supabase.auth = this.client.auth;
         }
+      } else {
+        this.client = null;
+        window.supabaseClient = null;
       }
     } catch (err) {
       console.warn("Supabase client initialization skipped:", err);
@@ -133,10 +143,30 @@ class SafetyStore {
    * @returns {boolean} True if successfully connected.
    */
   setCredentials(url, anonKey) {
-    if (url) localStorage.setItem("jugnu_supabase_url", url.trim());
-    if (anonKey) localStorage.setItem("jugnu_supabase_key", anonKey.trim());
+    if (url && typeof url === "string" && url.trim()) {
+      localStorage.setItem("jugnu_supabase_url", url.trim());
+    }
+    if (anonKey && typeof anonKey === "string" && anonKey.trim()) {
+      localStorage.setItem("jugnu_supabase_key", anonKey.trim());
+    }
     this._initClient();
     return this.isConfigured();
+  }
+
+  /**
+   * Returns the current active Supabase URL.
+   * @returns {string}
+   */
+  getUrl() {
+    return localStorage.getItem("jugnu_supabase_url") || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || SUPABASE_CONFIG.url || "";
+  }
+
+  /**
+   * Returns the current active Supabase Anon Key.
+   * @returns {string}
+   */
+  getKey() {
+    return localStorage.getItem("jugnu_supabase_key") || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || SUPABASE_CONFIG.anonKey || "";
   }
 
   /**
@@ -144,7 +174,7 @@ class SafetyStore {
    * @returns {boolean} True if client is ready.
    */
   isConfigured() {
-    return this.client !== null;
+    return Boolean(this.client !== null);
   }
 
   /**
@@ -703,8 +733,8 @@ class SafetyStore {
    * @returns {Promise<Object>} Supabase OAuth response.
    */
   async signInWithGoogle() {
-    if (!this.client) {
-      throw new Error("Supabase is not configured yet. Please configure your project URL and Key in data.js.");
+    if (!this.client || !this.isConfigured()) {
+      throw new Error("Supabase is not configured yet. Please configure your active project URL and Anon Key in data.js or Cloud Settings.");
     }
     const { data, error } = await this.client.auth.signInWithOAuth({
       provider: "google",
