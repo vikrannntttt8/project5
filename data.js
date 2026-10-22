@@ -95,12 +95,12 @@ class SafetyStore {
       let storedKey = localStorage.getItem("jugnu_supabase_key");
       // Clear old legacy key from previous sessions
       if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key")) {
-        try { localStorage.removeItem("jugnu_supabase_key"); } catch {}
+        try { localStorage.removeItem("jugnu_supabase_key"); } catch { }
         storedKey = null;
       }
       // Strictly enforce Supabase URL: clear any mismatched or outdated stored URL
       if (storedUrl && storedUrl !== SUPABASE_CONFIG.url) {
-        try { localStorage.removeItem("jugnu_supabase_url"); } catch {}
+        try { localStorage.removeItem("jugnu_supabase_url"); } catch { }
       }
 
       const config = {
