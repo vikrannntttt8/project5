@@ -68,7 +68,7 @@ Below is an architectural diagram showing how files, browser storage, libraries,
 +------------------------------------+             +--------------------------------+
 |         Supabase Cloud             |             |       OpenStreetMap & CDN      |
 |  - Table: public.reports           |             |  - OpenStreetMap Tile Server   |
-|  - Supabase Auth (OTP / Password)  |             |  - Nominatim Search API        |
+|  - Supabase Auth (Google / OTP)   |             |  - Nominatim Search API        |
 |  - Postgres with Row Level Security|             |  - Lucide Icons (v0.441.0 UMD) |
 +------------------------------------+             +--------------------------------+
 ```
@@ -140,7 +140,7 @@ In `index.html`, scripts are intentionally included in the following sequential 
 2. The Leaflet click listener triggers `onMapClick(e)`, which invokes `placeTarget(e.latlng)`.
 3. **Authentication Guard Check:** `placeTarget` checks if `state.currentUser` is present.
    - If **NOT** authenticated: `placeTarget` intercepts execution, caches the coordinates in `state.pendingReportLatLng`, suppresses `#report-sheet`, and pops open `#auth-modal` with the notice: *"Please sign in or create an account to report safety incidents to the community."*
-   - Once authenticated (via Magic Link or Email/Password), `updateAuthUI` detects `state.pendingReportLatLng`, closes the auth modal, and automatically triggers `placeTarget` on the saved coordinates.
+   - Once authenticated (via Google OAuth, Magic Link, or Email/Password), `updateAuthUI` detects `state.pendingReportLatLng`, closes the auth modal, and automatically triggers `placeTarget` on the saved coordinates.
 4. If authenticated:
    - Places an amber target marker (`target-ring-container`) at the clicked coordinates.
    - Computes a vertical offset and pans the map so the target rests in the top 30% of the screen.

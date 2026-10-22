@@ -114,7 +114,7 @@ html, body {
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 560px;
+  max-width: 520px;
   margin: 0 auto;
   pointer-events: auto;
 }
@@ -125,29 +125,38 @@ html, body {
 }
 
 .btn-account {
-  height: 52px;
+  height: 48px;
   padding: 0 16px;
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(18, 18, 21, 0.85);
+  background: rgba(18, 18, 21, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius);
   color: var(--text);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
+  pointer-events: auto;
   transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
 
+.btn-account.fixed-top-left,
+.btn-account.fixed {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1200;
+}
+
 .btn-account:hover, .btn-account:focus-visible {
-  background: rgba(28, 28, 33, 0.95);
+  background: rgba(28, 28, 33, 0.98);
   border-color: var(--accent);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75);
   transform: translateY(-1px);
 }
 
@@ -627,12 +636,28 @@ html, body {
   font-weight: 600;
 }
 
-.auth-user-email {
-  font-size: 15px;
+.auth-user-name {
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.auth-user-email {
+  font-size: 14px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-avatar-img, .account-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .auth-desc {
@@ -661,6 +686,37 @@ html, body {
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--accent);
+}
+
+.btn-google {
+  height: 52px;
+  width: 100%;
+  background: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius);
+  color: #1F2937;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: all 180ms ease;
+}
+
+.btn-google:hover, .btn-google:focus-visible {
+  background: #F3F4F6;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .auth-intro {
@@ -1840,3 +1896,24 @@ html, body {
     transition: none !important;
   }
 }
+
+/* Responsive layout for absolute top-left account button */
+@media (max-width: 820px) {
+  .top-bar {
+    padding-left: 68px;
+  }
+  .btn-account.fixed-top-left,
+  .btn-account.fixed {
+    top: 14px;
+    left: 14px;
+    height: 44px;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .btn-account.fixed-top-left .account-label,
+  .btn-account.fixed .account-label {
+    display: none;
+  }
+}
+

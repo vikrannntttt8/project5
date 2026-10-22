@@ -687,12 +687,48 @@ class SafetyStore {
   }
 
   /**
+   * Signs in using Google OAuth via Supabase Auth.
+   * @returns {Promise<Object>} Supabase OAuth response.
+   */
+  async signInWithGoogle() {
+    if (!this.client) {
+      throw new Error("Supabase is not configured yet. Please configure your project URL and Key in data.js.");
+    }
+    const { data, error } = await this.client.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Gets the active session from Supabase.
+   * @returns {Promise<Object|null>} Active session or null.
+   */
+  async getSession() {
+    if (!this.client) return null;
+    try {
+      const { data: { session } } = await this.client.auth.getSession();
+      return session || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Gets the currently authenticated user from Supabase.
    * @returns {Promise<Object|null>} Current user object or null.
    */
   async getCurrentUser() {
     if (!this.client) return null;
     try {
+      const session = await this.getSession();
+      if (session && session.user) {
+        return session.user;
+      }
       const { data: { user } } = await this.client.auth.getUser();
       return user || null;
     } catch {

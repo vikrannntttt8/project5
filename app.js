@@ -143,6 +143,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Subscribe to Supabase Auth State Changes
     store.onAuthStateChange((event, session) => {
       updateAuthUI(session?.user || null);
+      if (event === "SIGNED_IN" && session?.user) {
+        const name = session.user.user_metadata?.full_name || session.user.email;
+        showToast("Signed in as " + name);
+      }
     });
 
     // Fetch reports asynchronously from Supabase Cloud
@@ -368,6 +372,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnCloseAuth) {
       btnCloseAuth.addEventListener("click", () => {
         closeSheet(document.getElementById("auth-modal"));
+      });
+    }
+
+    // Google OAuth Sign In Button
+    const btnGoogleAuth = document.getElementById("btn-google-auth");
+    if (btnGoogleAuth) {
+      btnGoogleAuth.addEventListener("click", async () => {
+        if (!store.isConfigured()) {
+          showToast("Supabase is not configured. Add your Project URL and Key in data.js to enable cloud auth.");
+          return;
+        }
+        btnGoogleAuth.disabled = true;
+        try {
+          await store.signInWithGoogle();
+        } catch (err) {
+          showToast(err.message || "Google sign in failed.");
+          btnGoogleAuth.disabled = false;
+        }
       });
     }
 
@@ -597,18 +619,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const accountAvatar = document.getElementById("account-avatar");
     const authUserEmail = document.getElementById("auth-user-email");
     const authAvatarInitials = document.getElementById("auth-avatar-initials");
+    const authUserName = document.getElementById("auth-user-name");
 
     if (user && user.email) {
       if (authUserView) authUserView.classList.remove("hidden");
       if (authLoginView) authLoginView.classList.add("hidden");
 
-      const initial = user.email.charAt(0).toUpperCase();
-      if (authUserEmail) authUserEmail.textContent = user.email;
-      if (authAvatarInitials) authAvatarInitials.textContent = initial;
+      const fullName = user.user_metadata?.full_name || user.user_metadata?.name || "";
+      const email = user.email;
+      const initial = (fullName ? fullName.charAt(0) : email.charAt(0)).toUpperCase();
+      const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
 
-      if (accountLabel) accountLabel.textContent = user.email.split("@")[0];
+      if (authUserName) {
+        authUserName.textContent = fullName || email.split("@")[0];
+      }
+      if (authUserEmail) {
+        authUserEmail.textContent = email;
+      }
+      if (authAvatarInitials) {
+        if (avatarUrl) {
+          authAvatarInitials.innerHTML = `<img src="${avatarUrl}" alt="${initial}" class="auth-avatar-img">`;
+        } else {
+          authAvatarInitials.textContent = initial;
+        }
+      }
+
+      const displayLabel = fullName ? fullName.split(" ")[0] : email.split("@")[0];
+      if (accountLabel) accountLabel.textContent = displayLabel;
       if (accountAvatar) {
-        accountAvatar.innerHTML = `<div class="account-avatar-badge">${initial}</div>`;
+        if (avatarUrl) {
+          accountAvatar.innerHTML = `<img src="${avatarUrl}" alt="${initial}" class="account-avatar-img">`;
+        } else {
+          accountAvatar.innerHTML = `<div class="account-avatar-badge">${initial}</div>`;
+        }
       }
 
       // If user was prompted to sign in to drop a pin, resume pin placement
@@ -1014,9 +1057,18 @@ document.addEventListener("DOMContentLoaded", () => {
    * Requires user to be authenticated before opening the report sheet.
    * @param {L.LatLng|Object} latlng - Target coordinates.
    */
-  function placeTarget(latlng) {
-    // Authentication Guard for Pin Reporting
-    if (!state.currentUser) {
+  async function placeTarget(latlng) {
+    // Authentication Guard for Pin Reporting: verify active session or current user
+    let user = state.currentUser;
+    if (!user) {
+      user = await store.getCurrentUser();
+      if (user) {
+        state.currentUser = user;
+        updateAuthUI(user);
+      }
+    }
+
+    if (!user) {
       const lat = typeof latlng.lat === "number" ? latlng.lat : latlng[0];
       const lng = typeof latlng.lng === "number" ? latlng.lng : latlng[1];
       state.pendingReportLatLng = { lat, lng };
