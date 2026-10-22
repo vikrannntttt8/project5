@@ -48,6 +48,10 @@ const SUPABASE_CONFIG = {
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2dxaHh2b2Z6aGh6Y3lrZXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUxODcsImV4cCI6MjEwODE4MTE4N30.tHe6q5y6eKPAEkJoJx7lBQ3nYgJkG7EJlISahsN5Z4U"
 };
 
+if (typeof window !== "undefined") {
+  window.SUPABASE_CONFIG = SUPABASE_CONFIG;
+}
+
 class SafetyStore {
   /**
    * Initializes the safety store and Supabase client.
@@ -94,9 +98,13 @@ class SafetyStore {
         try { localStorage.removeItem("jugnu_supabase_key"); } catch {}
         storedKey = null;
       }
+      // Strictly enforce Supabase URL: clear any mismatched or outdated stored URL
+      if (storedUrl && storedUrl !== SUPABASE_CONFIG.url) {
+        try { localStorage.removeItem("jugnu_supabase_url"); } catch {}
+      }
 
       const config = {
-        url: storedUrl || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || SUPABASE_CONFIG.url,
+        url: SUPABASE_CONFIG.url,
         anonKey: storedKey || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || SUPABASE_CONFIG.anonKey
       };
 
@@ -107,6 +115,10 @@ class SafetyStore {
 
       if (!isPlaceholder) {
         this.client = window.supabase.createClient(config.url, config.anonKey);
+        window.supabaseClient = this.client;
+        if (window.supabase && !window.supabase.auth) {
+          window.supabase.auth = this.client.auth;
+        }
       }
     } catch (err) {
       console.warn("Supabase client initialization skipped:", err);

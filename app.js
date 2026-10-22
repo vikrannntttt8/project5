@@ -385,7 +385,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         btnGoogleAuth.disabled = true;
         try {
-          await store.signInWithGoogle();
+          if (store && typeof store.signInWithGoogle === "function") {
+            await store.signInWithGoogle();
+          } else if (window.supabaseClient?.auth) {
+            const { error } = await window.supabaseClient.auth.signInWithOAuth({
+              provider: "google",
+              options: {
+                redirectTo: window.location.origin
+              }
+            });
+            if (error) throw error;
+          } else if (window.supabase?.auth) {
+            const { error } = await window.supabase.auth.signInWithOAuth({
+              provider: "google",
+              options: {
+                redirectTo: window.location.origin
+              }
+            });
+            if (error) throw error;
+          }
         } catch (err) {
           showToast(err.message || "Google sign in failed.");
           btnGoogleAuth.disabled = false;
