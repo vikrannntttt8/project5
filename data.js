@@ -93,8 +93,8 @@ class SafetyStore {
       // Check runtime overrides or defaults
       const storedUrl = localStorage.getItem("jugnu_supabase_url");
       let storedKey = localStorage.getItem("jugnu_supabase_key");
-      // Clear old legacy key from previous sessions
-      if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key")) {
+      // Clear old legacy key or mismatched key to ensure anonymous key is cleanly initialized
+      if (storedKey && (storedKey.startsWith("sb_publishable_") || storedKey === "your-anon-key" || storedKey !== SUPABASE_CONFIG.anonKey)) {
         try { localStorage.removeItem("jugnu_supabase_key"); } catch { }
         storedKey = null;
       }
