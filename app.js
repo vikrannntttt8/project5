@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     lastKnownPosition: null,
     watchId: null,
     searchAbortController: null,
+    searchDebounceTimer: null,
     reverseGeocodeTimeout: null,
     // Fake call audio and timer state
     audioCtx: null,
@@ -161,16 +162,41 @@ document.addEventListener("DOMContentLoaded", () => {
    * Binds event listeners to interactive DOM elements.
    */
   function bindEvents() {
-    // Welcome Sheet Open Map Button
+    // Landing Overlay Dismiss Buttons
+    const btnLandingDismiss = document.getElementById("btn-landing-dismiss");
+    if (btnLandingDismiss) {
+      btnLandingDismiss.addEventListener("click", () => {
+        dismissLandingOverlay();
+      });
+    }
+
+    const btnLandingClose = document.getElementById("btn-landing-close");
+    if (btnLandingClose) {
+      btnLandingClose.addEventListener("click", () => {
+        dismissLandingOverlay();
+      });
+    }
+
+    const landingBackdrop = document.getElementById("landing-backdrop");
+    if (landingBackdrop) {
+      landingBackdrop.addEventListener("click", () => {
+        dismissLandingOverlay();
+      });
+    }
+
+    // Top-Right About / Guide Button
+    const btnOpenIntro = document.getElementById("btn-open-intro");
+    if (btnOpenIntro) {
+      btnOpenIntro.addEventListener("click", () => {
+        showLandingOverlay();
+      });
+    }
+
+    // Welcome Sheet Open Map Button (Legacy fallback)
     const btnOpenMap = document.getElementById("btn-open-map");
     if (btnOpenMap) {
       btnOpenMap.addEventListener("click", () => {
-        try {
-          localStorage.setItem("jugnu_onboarded", "1");
-        } catch {
-          // Ignore storage restrictions
-        }
-        closeSheet(document.getElementById("welcome-sheet"));
+        dismissLandingOverlay();
       });
     }
 
@@ -250,37 +276,85 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Search Input Form (Submit Only)
+    // Search Input Form (Debounced live search + Form Submit)
     const searchForm = document.getElementById("search-form");
     const searchInput = document.getElementById("search-input");
     const searchClear = document.getElementById("search-clear");
+    const searchResults = document.getElementById("search-results");
 
     if (searchForm && searchInput) {
       searchForm.addEventListener("submit", (e) => {
         e.preventDefault();
+        if (state.searchDebounceTimer) {
+          clearTimeout(state.searchDebounceTimer);
+          state.searchDebounceTimer = null;
+        }
         const query = searchInput.value.trim();
         if (query.length > 0) {
-          runSearch(query);
+          runSearch(query, false);
         }
       });
 
       searchInput.addEventListener("input", () => {
-        if (searchInput.value.length > 0) {
+        const query = searchInput.value.trim();
+        if (query.length > 0) {
           searchClear?.classList.remove("hidden");
         } else {
           searchClear?.classList.add("hidden");
-          const searchResults = document.getElementById("search-results");
-          if (searchResults) searchResults.classList.add("hidden");
+        }
+
+        if (state.searchDebounceTimer) {
+          clearTimeout(state.searchDebounceTimer);
+          state.searchDebounceTimer = null;
+        }
+
+        if (query.length >= 2) {
+          state.searchDebounceTimer = setTimeout(() => {
+            runSearch(query, true);
+          }, 240);
+        } else if (query.length === 0) {
+          if (state.searchAbortController) {
+            state.searchAbortController.abort();
+            state.searchAbortController = null;
+          }
+          if (searchResults) {
+            searchResults.innerHTML = "";
+            searchResults.classList.add("hidden");
+          }
+        }
+      });
+
+      searchInput.addEventListener("focus", () => {
+        const query = searchInput.value.trim();
+        if (query.length >= 2 && searchResults && searchResults.children.length > 0) {
+          searchResults.classList.remove("hidden");
+        }
+      });
+
+      // Dismiss search dropdown when tapping outside
+      document.addEventListener("click", (e) => {
+        if (!searchForm.contains(e.target) && searchResults && !searchResults.classList.contains("hidden")) {
+          searchResults.classList.add("hidden");
         }
       });
     }
 
     if (searchClear && searchInput) {
       searchClear.addEventListener("click", () => {
+        if (state.searchDebounceTimer) {
+          clearTimeout(state.searchDebounceTimer);
+          state.searchDebounceTimer = null;
+        }
+        if (state.searchAbortController) {
+          state.searchAbortController.abort();
+          state.searchAbortController = null;
+        }
         searchInput.value = "";
         searchClear.classList.add("hidden");
-        const searchResults = document.getElementById("search-results");
-        if (searchResults) searchResults.classList.add("hidden");
+        if (searchResults) {
+          searchResults.innerHTML = "";
+          searchResults.classList.add("hidden");
+        }
         searchInput.focus();
       });
     }
@@ -613,24 +687,63 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Displays the Welcome Sheet if the user has not dismissed it before.
+   * Displays the Animated Intro & Landing Frontpage Overlay for first-time visitors
+   * or when explicitly requested via URL parameter (?intro=1, ?about=1, ?welcome=1).
    */
   function maybeShowWelcome() {
     let onboarded = false;
     try {
-      onboarded = localStorage.getItem("jugnu_onboarded") === "1";
+      onboarded = localStorage.getItem("jugnu_landing_seen") === "1" || localStorage.getItem("jugnu_onboarded") === "1";
     } catch {
       onboarded = false;
     }
 
-    const welcomeSheet = document.getElementById("welcome-sheet");
-    if (!welcomeSheet) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceIntro = urlParams.get("intro") === "1" || urlParams.get("about") === "1" || urlParams.get("welcome") === "1";
 
-    if (!onboarded) {
-      openSheet(welcomeSheet);
-    } else {
-      welcomeSheet.classList.remove("is-open");
-      welcomeSheet.classList.add("hidden");
+    if (!onboarded || forceIntro) {
+      showLandingOverlay();
+    }
+  }
+
+  /**
+   * Smoothly displays the Animated Intro & Landing Frontpage Overlay.
+   */
+  function showLandingOverlay() {
+    const overlay = document.getElementById("landing-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    overlay.classList.remove("is-closing");
+    void overlay.offsetWidth;
+    overlay.classList.add("is-open");
+    refreshIcons();
+  }
+
+  /**
+   * Smoothly dismisses the Animated Intro & Landing Frontpage Overlay
+   * and saves onboarding preference in localStorage.
+   */
+  function dismissLandingOverlay() {
+    try {
+      localStorage.setItem("jugnu_landing_seen", "1");
+      localStorage.setItem("jugnu_onboarded", "1");
+    } catch {
+      // Ignore storage restrictions
+    }
+
+    const overlay = document.getElementById("landing-overlay");
+    if (overlay) {
+      overlay.classList.add("is-closing");
+      setTimeout(() => {
+        overlay.classList.remove("is-closing");
+        overlay.classList.remove("is-open");
+        overlay.classList.add("hidden");
+      }, 260);
+    }
+
+    const legacySheet = document.getElementById("welcome-sheet");
+    if (legacySheet && !legacySheet.classList.contains("hidden")) {
+      closeSheet(legacySheet);
     }
   }
 
@@ -1365,25 +1478,1048 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ==========================================================================
-     Section: Search
+     Section: Search (Hyper-Local Gullies, Fuzzy Match & Geocoding)
      ========================================================================== */
 
   /**
-   * Runs place search using OpenStreetMap Nominatim API biased toward Mumbai.
-   * @param {string} query - Location search query.
+   * Escapes HTML entities to prevent injection in dynamic search lists.
    */
-  async function runSearch(query) {
+  function escapeHtml(str) {
+    if (typeof str !== "string") return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /**
+   * Curated repository of authentic Mumbai gullies, small streets, chawls,
+   * koliwadas, and local food alleys.
+   */
+  const LOCAL_GULLIES = [
+    {
+      id: "gully_01",
+      name: "Ghatkopar Khau Galli",
+      locality: "Ghatkopar East",
+      sub: "Famous food street along Vallabh Dongre Road",
+      lat: 19.0805,
+      lng: 72.9078,
+      category: "khau_galli",
+      aliases: ["ghatkopar khau gali", "vallabh dongre road", "ghatkopar food gully", "khau galli ghatkopar", "khaw gali"]
+    },
+    {
+      id: "gully_02",
+      name: "Princess Street Khau Galli",
+      locality: "Marine Lines",
+      sub: "Alley behind Mangaldas Market & Dawa Bazaar",
+      lat: 18.9448,
+      lng: 72.8285,
+      category: "khau_galli",
+      aliases: ["princess street khau gali", "marine lines food lane", "mangaldas market khau galli", "dawa bazaar gully"]
+    },
+    {
+      id: "gully_03",
+      name: "Carter Road Khau Galli & Promenade",
+      locality: "Bandra West",
+      sub: "Coastal promenade street-food stretch",
+      lat: 19.0685,
+      lng: 72.8230,
+      category: "khau_galli",
+      aliases: ["carter road", "carter road gully", "bandra seaside lane", "carter road khau gali"]
+    },
+    {
+      id: "gully_04",
+      name: "Mahim Khau Galli",
+      locality: "Mahim West",
+      sub: "Famous kebab lane near Mahim Dargah",
+      lat: 19.0435,
+      lng: 72.8415,
+      category: "khau_galli",
+      aliases: ["mahim dargah lane", "mahim food gully", "mahim khau gali", "dargah gully mahim"]
+    },
+    {
+      id: "gully_05",
+      name: "SNDT Churchgate Khau Galli",
+      locality: "Churchgate",
+      sub: "College food lane on Sir Vithaldas Thackersey Marg",
+      lat: 18.9332,
+      lng: 72.8296,
+      category: "khau_galli",
+      aliases: ["churchgate khau gali", "sndt college lane", "cross maidan food gully", "marine lines college street"]
+    },
+    {
+      id: "gully_06",
+      name: "Tardeo Khau Galli",
+      locality: "Tardeo",
+      sub: "Near Sardar Pav Bhaji & AC Market",
+      lat: 18.9698,
+      lng: 72.8155,
+      category: "khau_galli",
+      aliases: ["tardeo khau gali", "sardar pav bhaji lane", "tardeo market gully", "ac market tardeo"]
+    },
+    {
+      id: "gully_07",
+      name: "Zaveri Bazaar Khau Galli",
+      locality: "Kalbadevi",
+      sub: "Historic jewelry district snack lane",
+      lat: 18.9515,
+      lng: 72.8312,
+      category: "khau_galli",
+      aliases: ["zaveri bazaar", "sheikh memon street", "kalbadevi khau gali", "jewellers lane"]
+    },
+    {
+      id: "gully_08",
+      name: "Mahavir Nagar Khau Galli",
+      locality: "Kandivali West",
+      sub: "Suburban evening street food promenade",
+      lat: 19.2130,
+      lng: 72.8400,
+      category: "khau_galli",
+      aliases: ["mahavir nagar", "kandivali khau gali", "mahavir nagar food street", "kandivali west lane"]
+    },
+    {
+      id: "gully_09",
+      name: "Bandra Station Khau Galli",
+      locality: "Bandra West",
+      sub: "Station road market alley",
+      lat: 19.0560,
+      lng: 72.8405,
+      category: "khau_galli",
+      aliases: ["bandra station road", "bandra west market gully", "station road food lane", "bandra khau gali"]
+    },
+    {
+      id: "gully_10",
+      name: "Mulund MG Road Khau Galli",
+      locality: "Mulund West",
+      sub: "Evening street cuisine lane off MG Road",
+      lat: 19.1730,
+      lng: 72.9540,
+      category: "khau_galli",
+      aliases: ["mulund khau gali", "mulund mg road", "mulund west food street"]
+    },
+    {
+      id: "gully_11",
+      name: "Chor Bazaar Mutton Street Gully",
+      locality: "Bhendi Bazaar",
+      sub: "Antique market alley & historic flea bazaar",
+      lat: 18.9602,
+      lng: 72.8306,
+      category: "gully",
+      aliases: ["chor bazaar", "mutton street", "thieves market gully", "chor bazar", "bhendi bazaar lane"]
+    },
+    {
+      id: "gully_12",
+      name: "Dadar Phool Galli",
+      locality: "Dadar West",
+      sub: "Wholesale flower market under Dadar flyover",
+      lat: 19.0185,
+      lng: 72.8427,
+      category: "gully",
+      aliases: ["dadar flower market", "phool galli", "phool gali", "senapati bapat marg flower market", "dadar market lane"]
+    },
+    {
+      id: "gully_13",
+      name: "Crawford Market Fruits & Spice Alley",
+      locality: "Fort / Dhobi Talao",
+      sub: "Colonial market lane & wholesale corridors",
+      lat: 18.9472,
+      lng: 72.8342,
+      category: "gully",
+      aliases: ["crawford market", "mahatma jyotiba phule mandai", "dhobi talao market gully", "crawford gully"]
+    },
+    {
+      id: "gully_14",
+      name: "Colaba Causeway Street Market",
+      locality: "Colaba",
+      sub: "Boutique flea sidewalk along Shahid Bhagat Singh Road",
+      lat: 18.9220,
+      lng: 72.8317,
+      category: "gully",
+      aliases: ["colaba causeway", "shahid bhagat singh road", "colaba market gully", "causeway lane"]
+    },
+    {
+      id: "gully_15",
+      name: "Fashion Street Walkway",
+      locality: "Azad Maidan / Fort",
+      sub: "Pedestrian apparel market opposite Cross Maidan",
+      lat: 18.9370,
+      lng: 72.8290,
+      category: "gully",
+      aliases: ["fashion street", "mg road clothes market", "azad maidan walkway", "cross maidan gully"]
+    },
+    {
+      id: "gully_16",
+      name: "Kala Ghoda Art District Lane",
+      locality: "Fort",
+      sub: "Heritage lanes along Forbes Street and Ropewalk Lane",
+      lat: 18.9298,
+      lng: 72.8327,
+      category: "gully",
+      aliases: ["kala ghoda", "ropewalk lane", "forbes street", "heritage art district gully"]
+    },
+    {
+      id: "gully_17",
+      name: "Bhendi Bazaar Cross Lane",
+      locality: "South Mumbai",
+      sub: "Commercial lane connecting Mohammad Ali Road",
+      lat: 18.9567,
+      lng: 72.8330,
+      category: "gully",
+      aliases: ["bhendi bazaar", "mohammad ali road cross lane", "bhendi bazar lane", "minara masjid gully"]
+    },
+    {
+      id: "gully_18",
+      name: "Null Bazaar & Chor Bazaar Lane",
+      locality: "Kalbadevi",
+      sub: "Historic brassware and hardware lane",
+      lat: 18.9545,
+      lng: 72.8300,
+      category: "gully",
+      aliases: ["null bazaar", "nul bazar", "null bazar cross lane", "kalbadevi brass gully"]
+    },
+    {
+      id: "gully_19",
+      name: "Mangaldas Market Textile Gully",
+      locality: "Kalbadevi",
+      sub: "Indoor silk and cloth market lanes",
+      lat: 18.9480,
+      lng: 72.8320,
+      category: "gully",
+      aliases: ["mangaldas market", "cloth market gully", "lohar chawl lane", "kalbadevi textile lane"]
+    },
+    {
+      id: "gully_20",
+      name: "Lalbaug Market Lane & Raja Gully",
+      locality: "Lalbaug / Parel",
+      sub: "Traditional spice market lane near Lalbaugcha Raja",
+      lat: 18.9912,
+      lng: 72.8378,
+      category: "gully",
+      aliases: ["lalbaug market", "lalbaugcha raja gully", "lalbaug spice market", "dr ambedkar road lane"]
+    },
+    {
+      id: "gully_21",
+      name: "Parel Bhoiwada Lane",
+      locality: "Parel",
+      sub: "Medical hub access lane near KEM Hospital",
+      lat: 19.0040,
+      lng: 72.8430,
+      category: "gully",
+      aliases: ["bhoiwada", "kem hospital lane", "parel village gully", "bhoiwada police station road"]
+    },
+    {
+      id: "gully_22",
+      name: "Dharavi Kumbharwada Pottery Lane",
+      locality: "Dharavi",
+      sub: "Potters' colony artisan lanes and kiln gullies",
+      lat: 19.0460,
+      lng: 72.8580,
+      category: "gully",
+      aliases: ["kumbharwada", "dharavi potters lane", "dharavi kumbharwada gully", "pottery village"]
+    },
+    {
+      id: "gully_23",
+      name: "Dharavi 90 Feet Road Gully",
+      locality: "Dharavi",
+      sub: "Main commercial spine & leather goods lane",
+      lat: 19.0410,
+      lng: 72.8550,
+      category: "gully",
+      aliases: ["dharavi 90 feet road", "dharavi leather market", "90 feet road gully"]
+    },
+    {
+      id: "gully_24",
+      name: "Dharavi 60 Feet Road Cross Gully",
+      locality: "Dharavi",
+      sub: "Connects Mahim to Dharavi transit routes",
+      lat: 19.0430,
+      lng: 72.8510,
+      category: "gully",
+      aliases: ["dharavi 60 feet road", "60 feet road lane", "mahim dharavi link gully"]
+    },
+    {
+      id: "gully_25",
+      name: "Ranwar Village Heritage Lane",
+      locality: "Bandra West",
+      sub: "Heritage Anglo-Indian village alleys & street murals",
+      lat: 19.0565,
+      lng: 72.8312,
+      category: "gully",
+      aliases: ["ranwar village", "ranwar lane bandra", "waroda road", "bandra graffiti village"]
+    },
+    {
+      id: "gully_26",
+      name: "Pali Naka & Pali Village Lane",
+      locality: "Bandra West",
+      sub: "Vibrant cafe neighborhood and boutique alley",
+      lat: 19.0628,
+      lng: 72.8288,
+      category: "gully",
+      aliases: ["pali naka", "pali village", "pali hill gully", "dr ambedkar road bandra west"]
+    },
+    {
+      id: "gully_27",
+      name: "Chimbai Koliwada Lane",
+      locality: "Bandra West",
+      sub: "Seaside fishing village lane off Hill Road",
+      lat: 19.0528,
+      lng: 72.8228,
+      category: "gully",
+      aliases: ["chimbai village", "chimbai koliwada", "chimbai road", "bandra fishing lane"]
+    },
+    {
+      id: "gully_28",
+      name: "Chuim Village Lane",
+      locality: "Khar West",
+      sub: "Historic gaothan alleys & quiet residential paths",
+      lat: 19.0710,
+      lng: 72.8335,
+      category: "gully",
+      aliases: ["chuim village", "chuim gaothan", "khar west gaothan gully", "chuim lane"]
+    },
+    {
+      id: "gully_29",
+      name: "Khar Danda Koliwada Gully",
+      locality: "Khar West",
+      sub: "Coastal fishing community alleys near Arabian Sea",
+      lat: 19.0750,
+      lng: 72.8250,
+      category: "gully",
+      aliases: ["khar danda", "danda koliwada", "khar danda jetty lane", "danda market gully"]
+    },
+    {
+      id: "gully_30",
+      name: "Versova Koliwada Jetty Gully",
+      locality: "Andheri West",
+      sub: "Historic seafood harbor and village corridors",
+      lat: 19.1350,
+      lng: 72.8120,
+      category: "gully",
+      aliases: ["versova koliwada", "versova village", "versova jetty gully", "versova fish market lane"]
+    },
+    {
+      id: "gully_31",
+      name: "Worli Koliwada Gully & Fort Road",
+      locality: "Worli",
+      sub: "Seaward village path to British-era Worli Fort",
+      lat: 19.0255,
+      lng: 72.8160,
+      category: "gully",
+      aliases: ["worli koliwada", "worli village", "worli fort road", "worli fishing village gully"]
+    },
+    {
+      id: "gully_32",
+      name: "Sewri Koliwada Cross Lane",
+      locality: "Sewri East",
+      sub: "Harbor side community lane near flamingo viewpoint",
+      lat: 19.0010,
+      lng: 72.8600,
+      category: "gully",
+      aliases: ["sewri koliwada", "sewri fort lane", "sewri mudflats gully", "sewri east village"]
+    },
+    {
+      id: "gully_33",
+      name: "Sion Koliwada Guru Tegh Bahadur Lane",
+      locality: "GTB Nagar / Sion",
+      sub: "Historic refugee colony & fish market lanes",
+      lat: 19.0370,
+      lng: 72.8620,
+      category: "gully",
+      aliases: ["sion koliwada", "gtb nagar", "guru tegh bahadur nagar lane", "sion market gully"]
+    },
+    {
+      id: "gully_34",
+      name: "BDD Chawls Worli Gully",
+      locality: "Worli",
+      sub: "Dense historic community tenement corridors",
+      lat: 19.0080,
+      lng: 72.8220,
+      category: "gully",
+      aliases: ["bdd chawl worli", "worli bdd chawls", "ganpatrao kadam marg chawl", "worli chawl lane"]
+    },
+    {
+      id: "gully_35",
+      name: "BDD Chawls Naigaon Lane",
+      locality: "Dadar East",
+      sub: "Central Mumbai historic residential chawl streets",
+      lat: 19.0140,
+      lng: 72.8480,
+      category: "gully",
+      aliases: ["bdd chawl naigaon", "naigaon chawls", "dadar east chawl gully", "naigaon cross road"]
+    },
+    {
+      id: "gully_36",
+      name: "BDD Chawls NM Joshi Marg",
+      locality: "Lower Parel",
+      sub: "Tenement lanes opposite Lower Parel railway station",
+      lat: 18.9950,
+      lng: 72.8290,
+      category: "gully",
+      aliases: ["bdd chawls nm joshi marg", "lower parel chawls", "delisle road chawl lane", "currey road gully"]
+    },
+    {
+      id: "gully_37",
+      name: "Bhatia Chawl & Chira Bazaar Lane",
+      locality: "Marine Lines / Kalbadevi",
+      sub: "Historic residential chawl corridors in South Mumbai",
+      lat: 18.9485,
+      lng: 72.8260,
+      category: "gully",
+      aliases: ["bhatia chawl", "chira bazaar", "chira bazar lane", "princess street chawl", "chira bazaar gully"]
+    },
+    {
+      id: "gully_38",
+      name: "Abhyudaya Nagar Chawl Colony",
+      locality: "Kalachowki",
+      sub: "Worker tenement neighborhood lanes",
+      lat: 18.9880,
+      lng: 72.8450,
+      category: "gully",
+      aliases: ["abhyudaya nagar", "kalachowki chawls", "cotton green residential lane", "kalachowki gully"]
+    },
+    {
+      id: "gully_39",
+      name: "Matunga Hindu Colony 1st Lane",
+      locality: "Matunga East",
+      sub: "Leafy residential heritage alley",
+      lat: 19.0270,
+      lng: 72.8490,
+      category: "gully",
+      aliases: ["hindu colony matunga", "hindu colony 1st lane", "ruia college lane", "matunga east gully"]
+    },
+    {
+      id: "gully_40",
+      name: "Matunga Brahminwada Lane",
+      locality: "Matunga Central",
+      sub: "Udupi restaurants and traditional market corridor",
+      lat: 19.0250,
+      lng: 72.8530,
+      category: "gully",
+      aliases: ["brahminwada matunga", "matunga circle lane", "kings circle gully", "matunga south indian street"]
+    },
+    {
+      id: "gully_41",
+      name: "Wadala Antop Hill CGS Colony Lane",
+      locality: "Wadala East",
+      sub: "Central government staff residential lanes",
+      lat: 19.0230,
+      lng: 72.8680,
+      category: "gully",
+      aliases: ["antop hill", "antop hill gully", "cgs colony wadala", "wadala east lane", "sangam nagar"]
+    },
+    {
+      id: "gully_42",
+      name: "Kurla Pipe Road Gully",
+      locality: "Kurla West",
+      sub: "Transit and market shortcut off LBS Marg",
+      lat: 19.0665,
+      lng: 72.8795,
+      category: "gully",
+      aliases: ["pipe road kurla", "kurla pipe road gully", "kurla west market lane", "pipe road"]
+    },
+    {
+      id: "gully_43",
+      name: "Kurla Bail Bazaar Lane",
+      locality: "Kurla West",
+      sub: "Busy commercial junction and auto repair gully",
+      lat: 19.0760,
+      lng: 72.8850,
+      category: "gully",
+      aliases: ["bail bazaar", "bail bazar kurla", "kurla bail bazaar gully", "kamani junction lane"]
+    },
+    {
+      id: "gully_44",
+      name: "Chembur Camp Sindhi Society Lane",
+      locality: "Chembur",
+      sub: "Famous food hub and sweet shop alley",
+      lat: 19.0550,
+      lng: 72.8980,
+      category: "gully",
+      aliases: ["chembur camp", "sindhi society chembur", "chembur food gully", "collector colony lane"]
+    },
+    {
+      id: "gully_45",
+      name: "Ghatkopar Pant Nagar Gully",
+      locality: "Ghatkopar East",
+      sub: "Residential gaothan and commercial corridors",
+      lat: 19.0820,
+      lng: 72.9140,
+      category: "gully",
+      aliases: ["pant nagar", "pant nagar ghatkopar", "pant nagar 90 feet road", "ghatkopar east gully"]
+    },
+    {
+      id: "gully_46",
+      name: "Vikhroli Tagore Nagar Lane",
+      locality: "Vikhroli East",
+      sub: "Transit lane toward Eastern Express Highway",
+      lat: 19.1060,
+      lng: 72.9300,
+      category: "gully",
+      aliases: ["tagore nagar vikhroli", "tagore nagar lane", "vikhroli east gully", "kannawar nagar"]
+    },
+    {
+      id: "gully_47",
+      name: "Bhandup Sonapur Gully",
+      locality: "Bhandup West",
+      sub: "LBS Marg connecting bazaar lane",
+      lat: 19.1450,
+      lng: 72.9370,
+      category: "gully",
+      aliases: ["sonapur bhandup", "bhandup sonapur lane", "lbs marg bhandup gully", "sonapur junction"]
+    },
+    {
+      id: "gully_48",
+      name: "Mulund Paanch Raasta Lane",
+      locality: "Mulund West",
+      sub: "Five-way junction market streets and residential lanes",
+      lat: 19.1725,
+      lng: 72.9560,
+      category: "gully",
+      aliases: ["paanch raasta", "panch rasta mulund", "mulund west paanch rasta", "mg road mulund gully"]
+    },
+    {
+      id: "gully_49",
+      name: "Thane Gokhale Road & Jambli Naka Gully",
+      locality: "Thane West",
+      sub: "Thane's oldest commercial market and street food street",
+      lat: 19.1910,
+      lng: 72.9750,
+      category: "gully",
+      aliases: ["jambli naka thane", "gokhale road thane", "thane market gully", "chendani koliwada"]
+    },
+    {
+      id: "gully_50",
+      name: "Thane Talao Pali Promenade Lane",
+      locality: "Thane West",
+      sub: "Historic lake walkway and street snack stalls",
+      lat: 19.1920,
+      lng: 72.9720,
+      category: "gully",
+      aliases: ["talao pali thane", "masunda lake lane", "thane lake promenade gully"]
+    },
+    {
+      id: "gully_51",
+      name: "Vashi Sector 9 Market Gully",
+      locality: "Navi Mumbai",
+      sub: "Vashi central market street and shopping alleys",
+      lat: 19.0750,
+      lng: 72.9980,
+      category: "gully",
+      aliases: ["vashi sector 9", "vashi market gully", "navi mumbai vashi lane", "sector 9 market"]
+    },
+    {
+      id: "gully_52",
+      name: "Nerul Sector 15 Palm Beach Lane",
+      locality: "Navi Mumbai",
+      sub: "Residential avenue cross street near seawoods",
+      lat: 19.0330,
+      lng: 73.0180,
+      category: "gully",
+      aliases: ["nerul sector 15", "palm beach road cross lane", "nerul west gully", "seawoods lane"]
+    },
+    {
+      id: "gully_53",
+      name: "Bandra Hill Road Market Gully",
+      locality: "Bandra West",
+      sub: "Shopping street stalls from St. Peter's to Bandra station",
+      lat: 19.0550,
+      lng: 72.8320,
+      category: "gully",
+      aliases: ["hill road bandra", "elco market gully", "bandra shopping street", "hill road lane"]
+    },
+    {
+      id: "gully_54",
+      name: "Bandra Linking Road Footwear Gully",
+      locality: "Bandra West",
+      sub: "Popular retail stalls off Waterfield Road",
+      lat: 19.0645,
+      lng: 72.8335,
+      category: "gully",
+      aliases: ["linking road", "linking road bandra", "linking road market gully", "waterfield road cross lane"]
+    },
+    {
+      id: "gully_55",
+      name: "Santacruz Station Skywalk & Station Road Gully",
+      locality: "Santacruz West",
+      sub: "Dense market street and skywalk descent",
+      lat: 19.0830,
+      lng: 72.8400,
+      category: "gully",
+      aliases: ["santacruz station road", "santacruz skywalk gully", "santacruz west market lane", "hasnabad lane"]
+    },
+    {
+      id: "gully_56",
+      name: "Vile Parle Subhash Road Lane",
+      locality: "Vile Parle East",
+      sub: "Station market and traditional Maharashtrian snack lane",
+      lat: 19.0980,
+      lng: 72.8480,
+      category: "gully",
+      aliases: ["subhash road vile parle", "vile parle east market gully", "vile parle station road"]
+    },
+    {
+      id: "gully_57",
+      name: "Irla Market Lane near Mithibai College",
+      locality: "Vile Parle West",
+      sub: "Shopping lane and college food stalls off SV Road",
+      lat: 19.1060,
+      lng: 72.8380,
+      category: "gully",
+      aliases: ["irla market", "irla lane", "mithibai college gully", "cooper hospital road", "mitibai"]
+    },
+    {
+      id: "gully_58",
+      name: "Mithibai College Canteen Lane",
+      locality: "Vile Parle West",
+      sub: "Popular student food and evening meeting corridor",
+      lat: 19.1056,
+      lng: 72.8372,
+      category: "gully",
+      aliases: ["mithibai college", "mithibai lane", "nm college road", "vile parle west college gully"]
+    },
+    {
+      id: "gully_59",
+      name: "Andheri West SV Road & Fish Market Gully",
+      locality: "Andheri West",
+      sub: "Dense station approach market street",
+      lat: 19.1200,
+      lng: 72.8450,
+      category: "gully",
+      aliases: ["andheri west market", "andheri sv road gully", "andheri station road west", "fish market andheri"]
+    },
+    {
+      id: "gully_60",
+      name: "Andheri Lokhandwala Market Backroad Gully",
+      locality: "Andheri West",
+      sub: "Famous fashion and cafe backstreet in Lokhandwala Complex",
+      lat: 19.1420,
+      lng: 72.8270,
+      category: "gully",
+      aliases: ["lokhandwala backroad", "lokhandwala market", "lokhandwala gully", "andheri lokhandwala"]
+    },
+    {
+      id: "gully_61",
+      name: "Andheri DN Nagar Metro Subway & Gully",
+      locality: "Andheri West",
+      sub: "Metro line junction and residential gaothan path",
+      lat: 19.1250,
+      lng: 72.8320,
+      category: "gully",
+      aliases: ["dn nagar metro", "dn nagar gully", "andheri dn nagar lane", "barfiwala college road"]
+    },
+    {
+      id: "gully_62",
+      name: "Veera Desai Industrial Road Gully",
+      locality: "Andheri West",
+      sub: "Commercial studios and transit road behind Azad Nagar Metro",
+      lat: 19.1290,
+      lng: 72.8370,
+      category: "gully",
+      aliases: ["veera desai road", "veera desai", "azad nagar metro lane", "andheri west studio gully"]
+    },
+    {
+      id: "gully_63",
+      name: "Andheri Chakala Cigarette Factory Gully",
+      locality: "Andheri East",
+      sub: "Industrial connector between Chakala Metro and Sahar Road",
+      lat: 19.1140,
+      lng: 72.8650,
+      category: "gully",
+      aliases: ["chakala gully", "andheri east cigarette factory lane", "chakala metro lane", "sahar road gully"]
+    },
+    {
+      id: "gully_64",
+      name: "Andheri MIDC Central Road Cross Gully",
+      locality: "Andheri East",
+      sub: "Commercial IT corridor and office commute lane",
+      lat: 19.1220,
+      lng: 72.8720,
+      category: "gully",
+      aliases: ["andheri midc", "midc central road", "marol midc gully", "andheri east it lane"]
+    },
+    {
+      id: "gully_65",
+      name: "Jogeshwari Caves Road & Behram Baug Gully",
+      locality: "Jogeshwari West",
+      sub: "Station approach and residential market corridor",
+      lat: 19.1380,
+      lng: 72.8490,
+      category: "gully",
+      aliases: ["jogeshwari caves road", "behram baug", "jogeshwari west market lane", "jogeshwari gully"]
+    },
+    {
+      id: "gully_66",
+      name: "Goregaon Topiwala Market Lane",
+      locality: "Goregaon West",
+      sub: "Vibrant community vegetable and clothing market",
+      lat: 19.1640,
+      lng: 72.8480,
+      category: "gully",
+      aliases: ["topiwala market", "goregaon west market", "topiwala lane", "station road goregaon"]
+    },
+    {
+      id: "gully_67",
+      name: "Goregaon Aarey Milk Colony Picnic Point Lane",
+      locality: "Goregaon East",
+      sub: "Scenic forested road connecting Western Express to Powai",
+      lat: 19.1520,
+      lng: 72.8750,
+      category: "gully",
+      aliases: ["aarey colony", "aarey milk colony", "picnic point aarey", "goregaon east forest road"]
+    },
+    {
+      id: "gully_68",
+      name: "Malad Marve Road & Mithchowki Gully",
+      locality: "Malad West",
+      sub: "Heavy transit artery connecting Inorbit to Marve Beach",
+      lat: 19.1870,
+      lng: 72.8380,
+      category: "gully",
+      aliases: ["marve road malad", "mithchowki", "malad west link road", "marve beach road gully"]
+    },
+    {
+      id: "gully_69",
+      name: "Malad Liberty Garden Lane",
+      locality: "Malad West",
+      sub: "Quiet residential neighborhood avenue off SV Road",
+      lat: 19.1840,
+      lng: 72.8490,
+      category: "gully",
+      aliases: ["liberty garden", "malad liberty garden lane", "sv road malad west gully"]
+    },
+    {
+      id: "gully_70",
+      name: "Kandivali Poisar Subway & Chawl Gully",
+      locality: "Kandivali West",
+      sub: "Pedestrian subway connection under railway tracks",
+      lat: 19.2060,
+      lng: 72.8520,
+      category: "gully",
+      aliases: ["poisar subway", "kandivali subway gully", "poisar chawl lane", "kandivali station subway"]
+    },
+    {
+      id: "gully_71",
+      name: "Borivali IC Colony Cross Lane",
+      locality: "Borivali West",
+      sub: "Peaceful residential neighborhood lanes & bakeries",
+      lat: 19.2460,
+      lng: 72.8510,
+      category: "gully",
+      aliases: ["ic colony", "borivali ic colony", "holy cross church lane", "ic colony gully"]
+    },
+    {
+      id: "gully_72",
+      name: "Borivali Station Service Lane & Babhai Naka",
+      locality: "Borivali West",
+      sub: "Station service lane behind parking and shops",
+      lat: 19.2310,
+      lng: 72.8560,
+      category: "gully",
+      aliases: ["borivali service lane", "babhai naka", "borivali west station road", "borivali service gully"]
+    },
+    {
+      id: "gully_73",
+      name: "Dahisar Anand Nagar Gully",
+      locality: "Dahisar East",
+      sub: "Toll naka approach and residential market street",
+      lat: 19.2590,
+      lng: 72.8650,
+      category: "gully",
+      aliases: ["anand nagar dahisar", "dahisar check naka lane", "dahisar east market gully"]
+    },
+    {
+      id: "gully_74",
+      name: "Mira Road Shanti Nagar Sector 4 Gully",
+      locality: "Mira Road",
+      sub: "High-density residential and shopping promenade",
+      lat: 19.2830,
+      lng: 72.8680,
+      category: "gully",
+      aliases: ["shanti nagar mira road", "mira road sector 4", "mira road market lane"]
+    },
+    {
+      id: "gully_75",
+      name: "Bhayandar West Station Cross Lane",
+      locality: "Bhayandar West",
+      sub: "Busy commercial station approach and temple road",
+      lat: 19.3010,
+      lng: 72.8520,
+      category: "gully",
+      aliases: ["bhayandar station road", "bhayandar west market gully", "maxus mall road"]
+    }
+  ];
+
+  /**
+   * Calculates Levenshtein distance between two strings.
+   */
+  function levenshteinDistance(s1, s2) {
+    const a = s1 || "";
+    const b = s2 || "";
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+
+  /**
+   * Normalizes colloquial spelling variations in Indian/Mumbai locality queries.
+   */
+  function normalizeSearchWord(word) {
+    const map = {
+      gali: "gully",
+      gallis: "gully",
+      galii: "gully",
+      gulley: "gully",
+      lane: "gully",
+      khaw: "khau",
+      khao: "khau",
+      chawal: "chawl",
+      chawle: "chawl",
+      bazar: "bazaar",
+      bazzar: "bazaar",
+      rd: "road",
+      stn: "station",
+      st: "street",
+      marg: "road",
+      raod: "road",
+      bandar: "bandra",
+      bndra: "bandra",
+      andher: "andheri",
+      borivli: "borivali",
+      kurlaa: "kurla",
+      mitibai: "mithibai"
+    };
+    return map[word] || word;
+  }
+
+  const GENERIC_GULLY_WORDS = new Set(["gully", "lane", "street", "road", "mumbai", "cross"]);
+
+  /**
+   * Computes flexible fuzzy matching score (0 to 100) between query and target.
+   */
+  function computeFuzzyScore(rawQuery, targetText, aliasList = []) {
+    const cleanQ = (rawQuery || "").toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+    const cleanT = (targetText || "").toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+
+    if (!cleanQ || !cleanT) return 0;
+
+    // Direct match
+    if (cleanT === cleanQ) return 100;
+    if (cleanT.startsWith(cleanQ)) return 95;
+    if (cleanT.includes(cleanQ)) return 85;
+
+    // Check alias list for match
+    for (const alias of aliasList) {
+      const cleanAlias = (alias || "").toLowerCase().replace(/[^\w\s]/g, " ").trim();
+      if (cleanAlias === cleanQ) return 98;
+      if (cleanAlias.includes(cleanQ)) return 88;
+    }
+
+    const qWords = cleanQ.split(" ").filter(w => w.length > 0).map(normalizeSearchWord);
+    const tWords = cleanT.split(" ").filter(w => w.length > 0).map(normalizeSearchWord);
+
+    if (qWords.length === 0 || tWords.length === 0) return 0;
+
+    let matchedWordScore = 0;
+    let distinguishingMatch = false;
+
+    for (const qw of qWords) {
+      let wordFound = false;
+      const isGeneric = GENERIC_GULLY_WORDS.has(qw);
+
+      for (const tw of tWords) {
+        if (qw === tw) {
+          matchedWordScore += 1.0;
+          wordFound = true;
+          if (!isGeneric) distinguishingMatch = true;
+          break;
+        }
+        if (tw.startsWith(qw) && qw.length >= 3) {
+          matchedWordScore += 0.85;
+          wordFound = true;
+          if (!isGeneric) distinguishingMatch = true;
+          break;
+        }
+        if (qw.startsWith(tw) && tw.length >= 3) {
+          matchedWordScore += 0.8;
+          wordFound = true;
+          if (!isGeneric) distinguishingMatch = true;
+          break;
+        }
+        // Levenshtein typo check for words of length >= 4
+        if (qw.length >= 4 && tw.length >= 4) {
+          const dist = levenshteinDistance(qw, tw);
+          if (dist <= 1) {
+            matchedWordScore += 0.8;
+            wordFound = true;
+            if (!isGeneric) distinguishingMatch = true;
+            break;
+          } else if (dist <= 2 && (qw.length >= 6 || tw.length >= 6)) {
+            matchedWordScore += 0.55;
+            wordFound = true;
+            if (!isGeneric) distinguishingMatch = true;
+            break;
+          }
+        }
+      }
+
+      if (!wordFound && aliasList.length > 0) {
+        for (const alias of aliasList) {
+          const normAlias = normalizeSearchWord(alias.toLowerCase());
+          const aliasWords = normAlias.split(" ");
+          if (aliasWords.includes(qw)) {
+            matchedWordScore += 0.85;
+            if (!isGeneric) distinguishingMatch = true;
+            break;
+          } else if (aliasWords.some(aw => aw.startsWith(qw) && qw.length >= 3)) {
+            matchedWordScore += 0.7;
+            if (!isGeneric) distinguishingMatch = true;
+            break;
+          }
+        }
+      }
+    }
+
+    const hasNonGenericQ = qWords.some(w => !GENERIC_GULLY_WORDS.has(w));
+    if (hasNonGenericQ && !distinguishingMatch) {
+      return 0;
+    }
+
+    const ratio = matchedWordScore / qWords.length;
+    return ratio * 85;
+  }
+
+  /**
+   * Matches query against curated local gullies and all user-submitted safety reports.
+   */
+  function matchLocalLocations(query) {
+    const results = [];
+
+    // 1. Match curated local gullies
+    LOCAL_GULLIES.forEach(item => {
+      const fullText = `${item.name} ${item.locality} ${item.sub} ${(item.aliases || []).join(" ")}`;
+      const score = computeFuzzyScore(query, fullText, item.aliases || []);
+      if (score >= 40) {
+        results.push({
+          id: item.id,
+          primaryName: item.name,
+          subName: `${item.locality} · ${item.sub || "Local Gully"}`,
+          lat: item.lat,
+          lng: item.lng,
+          category: "gully",
+          badgeText: item.category === "khau_galli" ? "Khau Galli" : "Local Gully",
+          score: score
+        });
+      }
+    });
+
+    // 2. Match active safety reports in store
+    try {
+      const reports = (typeof store !== "undefined" && store.getAllReports) ? store.getAllReports() : [];
+      reports.forEach(report => {
+        const fullText = `${report.areaName} ${report.note || ""} ${(report.tags || []).join(" ")}`;
+        const score = computeFuzzyScore(query, fullText, report.tags || []);
+        if (score >= 40) {
+          const statusLabel = report.status ? report.status.toUpperCase() : "REPORT";
+          const confText = `${report.confirmations || 1} confirmed`;
+          const sub = `${statusLabel} · ${confText} ${report.note ? "· " + report.note : ""}`;
+          results.push({
+            id: "report_" + report.id,
+            primaryName: report.areaName || "Street Report",
+            subName: sub,
+            lat: report.lat,
+            lng: report.lng,
+            category: "report",
+            status: report.status || "safe",
+            reportId: report.id,
+            badgeText: `${statusLabel} Pin`,
+            score: score + 5
+          });
+        }
+      });
+    } catch {
+      // Continue without store reports
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => b.score - a.score);
+    return results;
+  }
+
+  /**
+   * Merges local fuzzy matches with remote Nominatim results, preventing spatial duplicates.
+   */
+  function mergeAndDeduplicateResults(localMatches, remoteMatches) {
+    const combined = [...localMatches];
+
+    remoteMatches.forEach(remote => {
+      const isDuplicate = combined.some(existing => {
+        const dLat = Math.abs(existing.lat - remote.lat);
+        const dLng = Math.abs(existing.lng - remote.lng);
+        return dLat < 0.003 && dLng < 0.003;
+      });
+
+      if (!isDuplicate) {
+        combined.push(remote);
+      }
+    });
+
+    return combined;
+  }
+
+  /**
+   * Runs enhanced place search with Mumbai geographic bias, local gully matching,
+   * fuzzy tolerance, and live fallback handling.
+   * @param {string} rawQuery - Location search query.
+   * @param {boolean} [isLiveInput=false] - Whether triggered from typing debounce.
+   */
+  async function runSearch(rawQuery, isLiveInput = false) {
     const searchResults = document.getElementById("search-results");
     if (!searchResults) return;
 
-    searchResults.innerHTML = `
-      <div class="search-status">
-        <i data-lucide="loader-circle" class="spin"></i>
-        <span>Searching...</span>
-      </div>
-    `;
-    searchResults.classList.remove("hidden");
-    refreshIcons();
+    const query = (rawQuery || "").trim();
+    if (query.length < 2) {
+      searchResults.innerHTML = "";
+      searchResults.classList.add("hidden");
+      return;
+    }
+
+    // 1. Perform instant local fuzzy matching
+    const localMatches = matchLocalLocations(query);
+
+    // Show local results immediately while remote search resolves
+    if (localMatches.length > 0) {
+      renderSearchResults(localMatches, query, true);
+    } else {
+      searchResults.innerHTML = `
+        <div class="search-status">
+          <i data-lucide="loader-circle" class="spin"></i>
+          <span>Searching local gullies & landmarks...</span>
+        </div>
+      `;
+      searchResults.classList.remove("hidden");
+      refreshIcons();
+    }
 
     // Abort previous in-flight request if any
     if (state.searchAbortController) {
@@ -1392,27 +2528,62 @@ document.addEventListener("DOMContentLoaded", () => {
     state.searchAbortController = new AbortController();
 
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&countrycodes=in&viewbox=72.75,19.35,73.05,18.85&q=${encodeURIComponent(query)}`;
+      // Append local geographic bias or context if query is short or lacks locality
+      let geocodeQuery = query;
+      const lowerQ = query.toLowerCase();
+      const hasMumbaiContext = lowerQ.includes("mumbai") || lowerQ.includes("bombay") || lowerQ.includes("thane") || lowerQ.includes("navi mumbai");
+      if (!hasMumbaiContext) {
+        geocodeQuery = `${query}, Mumbai, Maharashtra, India`;
+      }
+
+      // Nominatim search biased to Mumbai viewBox (72.70, 19.38, 73.18, 18.80)
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&countrycodes=in&viewbox=72.70,19.38,73.18,18.80&bounded=0&q=${encodeURIComponent(geocodeQuery)}`;
       const res = await fetch(url, {
         signal: state.searchAbortController.signal,
         headers: { "Accept-Language": "en" }
       });
 
       if (!res.ok) throw new Error("Search network error");
-      const items = await res.json();
-      renderSearchResults(items);
+      const remoteItems = await res.json();
+
+      const remoteMatches = (Array.isArray(remoteItems) ? remoteItems : []).map(item => {
+        const parts = (item.display_name || "").split(",").map(p => p.trim());
+        const primary = parts.slice(0, 2).join(", ");
+        const sub = parts.slice(2).join(", ");
+        return {
+          id: "osm_" + (item.place_id || Math.random().toString(36).slice(2)),
+          primaryName: primary || item.name || query,
+          subName: sub || "Mumbai, Maharashtra",
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          category: "place",
+          badgeText: "Geocoded Place",
+          score: 50
+        };
+      });
+
+      const merged = mergeAndDeduplicateResults(localMatches, remoteMatches);
+      renderSearchResults(merged, query, false);
     } catch (err) {
       if (err.name === "AbortError") return;
-      searchResults.classList.add("hidden");
-      showToast("Search failed. Check your internet connection.");
+      if (localMatches.length > 0) {
+        renderSearchResults(localMatches, query, false);
+      } else {
+        renderSearchResults([], query, false);
+        if (!isLiveInput) {
+          showToast("Network search timed out. Showing local matches only.");
+        }
+      }
     }
   }
 
   /**
-   * Renders up to 5 location results in the dropdown.
-   * @param {Array<Object>} items - Nominatim search results.
+   * Renders location results or displays the required local gully empty state.
+   * @param {Array<Object>} items - Search results.
+   * @param {string} query - The search query.
+   * @param {boolean} [isLoadingMore=false] - Whether geocoding is still resolving.
    */
-  function renderSearchResults(items) {
+  function renderSearchResults(items, query, isLoadingMore = false) {
     const searchResults = document.getElementById("search-results");
     if (!searchResults) return;
 
@@ -1420,24 +2591,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!Array.isArray(items) || items.length === 0) {
       searchResults.innerHTML = `
-        <div class="search-status">
-          <span>No places found. Try a nearby station or college.</span>
+        <div class="search-status search-empty">
+          <div class="search-empty-icon" aria-hidden="true">
+            <i data-lucide="map-pin-off"></i>
+          </div>
+          <div class="search-empty-text">
+            <strong class="search-empty-title">No local gullies found. Try zooming or searching nearby landmarks</strong>
+            <span class="search-empty-sub">Try searching by major station, college, chowk, or road name.</span>
+          </div>
         </div>
       `;
+      searchResults.classList.remove("hidden");
+      refreshIcons();
       return;
     }
 
-    items.forEach(item => {
-      const parts = item.display_name.split(",").map(p => p.trim());
-      const primaryName = parts.slice(0, 2).join(", ");
-      const subName = parts.slice(2).join(", ");
+    const displayList = items.slice(0, 6);
 
+    displayList.forEach(item => {
       const row = document.createElement("button");
       row.type = "button";
-      row.className = "search-item";
+      row.className = `search-item search-item-${item.category || "place"}`;
+
+      let iconName = "map-pin";
+      let iconClass = "icon-place";
+      let badgeClass = "badge-place";
+
+      if (item.category === "gully") {
+        iconName = "map-pin";
+        iconClass = "icon-gully";
+        badgeClass = "badge-gully";
+      } else if (item.category === "report") {
+        if (item.status === "unsafe") {
+          iconName = "shield-alert";
+          iconClass = "icon-unsafe";
+          badgeClass = "badge-report-unsafe";
+        } else if (item.status === "caution") {
+          iconName = "triangle-alert";
+          iconClass = "icon-caution";
+          badgeClass = "badge-report-caution";
+        } else {
+          iconName = "shield-check";
+          iconClass = "icon-safe";
+          badgeClass = "badge-report-safe";
+        }
+      }
+
       row.innerHTML = `
-        <span class="search-item-primary">${primaryName}</span>
-        <span class="search-item-sub">${subName}</span>
+        <div class="search-item-left">
+          <div class="search-item-icon ${iconClass}" aria-hidden="true">
+            <i data-lucide="${iconName}"></i>
+          </div>
+          <div class="search-item-info">
+            <span class="search-item-primary">${escapeHtml(item.primaryName)}</span>
+            <span class="search-item-sub">${escapeHtml(item.subName)}</span>
+          </div>
+        </div>
+        <span class="search-item-badge ${badgeClass}">${escapeHtml(item.badgeText || "Location")}</span>
       `;
 
       row.addEventListener("click", () => {
@@ -1446,23 +2656,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
       searchResults.appendChild(row);
     });
+
+    if (isLoadingMore) {
+      const loadingRow = document.createElement("div");
+      loadingRow.className = "search-status";
+      loadingRow.innerHTML = `
+        <i data-lucide="loader-circle" class="spin"></i>
+        <span>Checking geocoding satellites...</span>
+      `;
+      searchResults.appendChild(loadingRow);
+    }
+
+    searchResults.classList.remove("hidden");
+    refreshIcons();
   }
 
   /**
-   * Flies map to chosen search result and flashes temporary amber ring.
+   * Flies map to chosen search result, shows temporary pulsing ring,
+   * and opens inspection card if it is a community report.
    * @param {Object} item - Chosen search item.
    */
   function flyToResult(item) {
     const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
+    const lon = parseFloat(item.lon !== undefined ? item.lon : item.lng);
     if (isNaN(lat) || isNaN(lon) || !state.map) return;
 
     const searchResults = document.getElementById("search-results");
     if (searchResults) searchResults.classList.add("hidden");
 
-    state.map.flyTo([lat, lon], 16, { duration: 1.5 });
+    const searchInput = document.getElementById("search-input");
+    if (searchInput) searchInput.blur();
 
-    // Show temporary amber ring marker for 6 seconds
+    const targetZoom = item.category === "gully" ? 17 : 16;
+    state.map.flyTo([lat, lon], targetZoom, { duration: 1.5 });
+
+    // If report item, open inspection card
+    if (item.category === "report" && item.reportId) {
+      setTimeout(() => {
+        openInspect(item.reportId);
+      }, 700);
+      return;
+    }
+
+    // Show temporary amber/emerald locator ring marker for 6 seconds
     if (state.searchRingMarker) {
       state.map.removeLayer(state.searchRingMarker);
     }
@@ -1488,6 +2724,8 @@ document.addEventListener("DOMContentLoaded", () => {
         state.searchRingMarker = null;
       }
     }, 6000);
+
+    showToast(`Navigated to ${item.primaryName}`);
   }
 
   /* ==========================================================================
@@ -1910,6 +3148,11 @@ document.addEventListener("DOMContentLoaded", () => {
    * Closes all active sheets, inspection cards, and scrim.
    */
   function closeAllOverlays() {
+    const landingOverlay = document.getElementById("landing-overlay");
+    if (landingOverlay && !landingOverlay.classList.contains("hidden")) {
+      dismissLandingOverlay();
+    }
+
     const sheets = document.querySelectorAll(".sheet");
     sheets.forEach(s => {
       s.classList.remove("is-open");
