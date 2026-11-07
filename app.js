@@ -39,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
     callSeconds: 0,
     isCallPending: false,
     currentUser: null,
-    authMode: "magic-link",
     pendingReportLatLng: null
   };
 
@@ -162,25 +161,40 @@ document.addEventListener("DOMContentLoaded", () => {
    * Binds event listeners to interactive DOM elements.
    */
   function bindEvents() {
-    // Landing Overlay Dismiss Buttons
+    // Landing Overlay Actions
     const btnLandingDismiss = document.getElementById("btn-landing-dismiss");
     if (btnLandingDismiss) {
       btnLandingDismiss.addEventListener("click", () => {
-        dismissLandingOverlay();
+        dismissLandingOverlay(true);
       });
     }
 
     const btnLandingClose = document.getElementById("btn-landing-close");
     if (btnLandingClose) {
       btnLandingClose.addEventListener("click", () => {
-        dismissLandingOverlay();
+        dismissLandingOverlay(false);
       });
     }
 
     const landingBackdrop = document.getElementById("landing-backdrop");
     if (landingBackdrop) {
       landingBackdrop.addEventListener("click", () => {
-        dismissLandingOverlay();
+        dismissLandingOverlay(false);
+      });
+    }
+
+    const btnLandingGoogleAuth = document.getElementById("btn-landing-google-auth");
+    if (btnLandingGoogleAuth) {
+      btnLandingGoogleAuth.addEventListener("click", () => {
+        triggerGoogleAuth(btnLandingGoogleAuth);
+      });
+    }
+
+    const btnLandingEmailAuth = document.getElementById("btn-landing-email-auth");
+    if (btnLandingEmailAuth) {
+      btnLandingEmailAuth.addEventListener("click", () => {
+        dismissLandingOverlay(false);
+        openSheet(document.getElementById("auth-modal"));
       });
     }
 
@@ -449,82 +463,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Google OAuth Sign In Button
+    // Google OAuth Sign In Button in Auth Modal
     const btnGoogleAuth = document.getElementById("btn-google-auth");
     if (btnGoogleAuth) {
-      btnGoogleAuth.addEventListener("click", async () => {
-        if (!store.isConfigured()) {
-          showToast("Supabase is not configured. Please paste your active Supabase URL and Anon Key in Cloud Connection Settings below.");
-          const detailsEl = document.querySelector(".auth-advanced-details");
-          if (detailsEl) detailsEl.open = true;
-          const urlInput = document.getElementById("cfg-supabase-url");
-          if (urlInput) urlInput.focus();
-          return;
-        }
-        btnGoogleAuth.disabled = true;
-        try {
-          if (store && typeof store.signInWithGoogle === "function") {
-            await store.signInWithGoogle();
-          } else if (window.supabaseClient?.auth) {
-            const { error } = await window.supabaseClient.auth.signInWithOAuth({
-              provider: "google",
-              options: {
-                redirectTo: window.location.origin
-              }
-            });
-            if (error) throw error;
-          } else if (window.supabase?.auth) {
-            const { error } = await window.supabase.auth.signInWithOAuth({
-              provider: "google",
-              options: {
-                redirectTo: window.location.origin
-              }
-            });
-            if (error) throw error;
-          }
-        } catch (err) {
-          showToast(err.message || "Google sign in failed.");
-          btnGoogleAuth.disabled = false;
-        }
+      btnGoogleAuth.addEventListener("click", () => {
+        triggerGoogleAuth(btnGoogleAuth);
       });
     }
 
-    // Auth Mode Tabs (Magic Link vs Email & Password)
-    const tabMagicLink = document.getElementById("tab-magic-link");
-    const tabPassword = document.getElementById("tab-password");
-    const groupPassword = document.getElementById("group-password");
-    const btnAuthLabel = document.getElementById("btn-auth-label");
-    const btnAuthSignup = document.getElementById("btn-auth-signup");
-
-    if (tabMagicLink && tabPassword) {
-      tabMagicLink.addEventListener("click", () => {
-        tabMagicLink.classList.add("is-active");
-        tabMagicLink.setAttribute("aria-selected", "true");
-        tabPassword.classList.remove("is-active");
-        tabPassword.setAttribute("aria-selected", "false");
-        groupPassword?.classList.add("hidden");
-        btnAuthSignup?.classList.add("hidden");
-        const authPassword = document.getElementById("auth-password");
-        if (authPassword) authPassword.required = false;
-        if (btnAuthLabel) btnAuthLabel.textContent = "Send Magic Link";
-        state.authMode = "magic-link";
-      });
-
-      tabPassword.addEventListener("click", () => {
-        tabPassword.classList.add("is-active");
-        tabPassword.setAttribute("aria-selected", "true");
-        tabMagicLink.classList.remove("is-active");
-        tabMagicLink.setAttribute("aria-selected", "false");
-        groupPassword?.classList.remove("hidden");
-        btnAuthSignup?.classList.remove("hidden");
-        const authPassword = document.getElementById("auth-password");
-        if (authPassword) authPassword.required = true;
-        if (btnAuthLabel) btnAuthLabel.textContent = "Sign In";
-        state.authMode = "password";
-      });
-    }
-
-    // Auth Form Submission (Sign In with Password or Magic Link)
+    // Auth Form Submission (Direct Email & Password Sign In)
     const authForm = document.getElementById("auth-form");
     if (authForm) {
       authForm.addEventListener("submit", async (e) => {
@@ -534,13 +481,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const email = emailInput ? emailInput.value.trim() : "";
         const password = passInput ? passInput.value : "";
 
-        if (!email) {
-          showToast("Please enter a valid email address.");
+        if (!email || !password) {
+          showToast("Please enter both email and password.");
           return;
         }
 
         if (!store.isConfigured()) {
-          showToast("Supabase is not configured. Add your Project URL and Key in data.js to enable cloud auth.");
+          showToast("Supabase is not configured. Please paste your active Supabase URL and Anon Key in Cloud Connection Settings below.");
+          const detailsEl = document.querySelector(".auth-advanced-details");
+          if (detailsEl) detailsEl.open = true;
+          const urlInput = document.getElementById("cfg-supabase-url");
+          if (urlInput) urlInput.focus();
           return;
         }
 
@@ -548,31 +499,21 @@ document.addEventListener("DOMContentLoaded", () => {
         if (submitBtn) submitBtn.disabled = true;
 
         try {
-          if (state.authMode === "magic-link") {
-            await store.signInWithOtp(email);
-            showToast("Magic link sent. Check your inbox to sign in.");
-            closeSheet(document.getElementById("auth-modal"));
-          } else {
-            // Password mode: attempt signIn
-            try {
-              await store.signInWithPassword(email, password);
-              showToast("Signed in successfully.");
-              const user = await store.getCurrentUser();
-              updateAuthUI(user);
-              closeSheet(document.getElementById("auth-modal"));
-            } catch (signInErr) {
-              showToast(signInErr.message || "Invalid credentials. Try Create Account if you are new.");
-            }
-          }
-        } catch (err) {
-          showToast(err.message || "Sign in failed. Check your connection.");
+          await store.signInWithPassword(email, password);
+          showToast("Signed in successfully.");
+          const user = await store.getCurrentUser();
+          updateAuthUI(user);
+          closeSheet(document.getElementById("auth-modal"));
+        } catch (signInErr) {
+          showToast(signInErr.message || "Invalid credentials. Try Create Account if you are new.");
         } finally {
           if (submitBtn) submitBtn.disabled = false;
         }
       });
     }
 
-    // Create Account Button (Direct Sign Up)
+    // Create Account Button (Direct Sign Up with Email & Password)
+    const btnAuthSignup = document.getElementById("btn-auth-signup");
     if (btnAuthSignup) {
       btnAuthSignup.addEventListener("click", async () => {
         const emailInput = document.getElementById("auth-email");
@@ -582,6 +523,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!email || !password) {
           showToast("Please enter both email and password to create an account.");
+          return;
+        }
+
+        if (!store.isConfigured()) {
+          showToast("Supabase is not configured. Please paste your active Supabase URL and Anon Key in Cloud Connection Settings below.");
+          const detailsEl = document.querySelector(".auth-advanced-details");
+          if (detailsEl) detailsEl.open = true;
+          const urlInput = document.getElementById("cfg-supabase-url");
+          if (urlInput) urlInput.focus();
           return;
         }
 
@@ -687,21 +637,64 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Displays the Animated Intro & Landing Frontpage Overlay for first-time visitors
-   * or when explicitly requested via URL parameter (?intro=1, ?about=1, ?welcome=1).
+   * Initiates Google OAuth authentication via Supabase.
+   * @param {HTMLButtonElement|null} triggerBtn - The button that triggered auth.
+   */
+  async function triggerGoogleAuth(triggerBtn) {
+    if (!store.isConfigured()) {
+      showToast("Supabase is not configured. Please paste your active Supabase URL and Anon Key in Cloud Connection Settings.");
+      dismissLandingOverlay(false);
+      openSheet(document.getElementById("auth-modal"));
+      const detailsEl = document.querySelector(".auth-advanced-details");
+      if (detailsEl) detailsEl.open = true;
+      const urlInput = document.getElementById("cfg-supabase-url");
+      if (urlInput) urlInput.focus();
+      return;
+    }
+    if (triggerBtn) triggerBtn.disabled = true;
+    try {
+      if (store && typeof store.signInWithGoogle === "function") {
+        await store.signInWithGoogle();
+      } else if (window.supabaseClient?.auth) {
+        const { error } = await window.supabaseClient.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) throw error;
+      } else if (window.supabase?.auth) {
+        const { error } = await window.supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) throw error;
+      }
+    } catch (err) {
+      showToast(err.message || "Google sign in failed.");
+      if (triggerBtn) triggerBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Displays the Animated Intro & Landing Frontpage Overlay automatically by default
+   * whenever the webpage is loaded or refreshed (unless the user has explicitly clicked
+   * "Explore Live Map" in the current session).
    */
   function maybeShowWelcome() {
-    let onboarded = false;
+    let exploredInSession = false;
     try {
-      onboarded = localStorage.getItem("jugnu_landing_seen") === "1" || localStorage.getItem("jugnu_onboarded") === "1";
+      exploredInSession = sessionStorage.getItem("jugnu_landing_explored") === "true";
     } catch {
-      onboarded = false;
+      exploredInSession = false;
     }
 
     const urlParams = new URLSearchParams(window.location.search);
     const forceIntro = urlParams.get("intro") === "1" || urlParams.get("about") === "1" || urlParams.get("welcome") === "1";
 
-    if (!onboarded || forceIntro) {
+    if (!exploredInSession || forceIntro) {
       showLandingOverlay();
     }
   }
@@ -720,15 +713,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Smoothly dismisses the Animated Intro & Landing Frontpage Overlay
-   * and saves onboarding preference in localStorage.
+   * Smoothly dismisses the Animated Intro & Landing Frontpage Overlay.
+   * If explored is true ("Explore Live Map" clicked), records in sessionStorage so it does not pop up again
+   * on refresh during this browser session.
+   * @param {boolean} explored - Whether the dismissal was triggered by "Explore Live Map".
    */
-  function dismissLandingOverlay() {
-    try {
-      localStorage.setItem("jugnu_landing_seen", "1");
-      localStorage.setItem("jugnu_onboarded", "1");
-    } catch {
-      // Ignore storage restrictions
+  function dismissLandingOverlay(explored = false) {
+    if (explored) {
+      try {
+        sessionStorage.setItem("jugnu_landing_explored", "true");
+        localStorage.setItem("jugnu_landing_seen", "1");
+        localStorage.setItem("jugnu_onboarded", "1");
+      } catch {
+        // Ignore storage restrictions
+      }
     }
 
     const overlay = document.getElementById("landing-overlay");
@@ -778,6 +776,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const authUserEmail = document.getElementById("auth-user-email");
     const authAvatarInitials = document.getElementById("auth-avatar-initials");
     const authUserName = document.getElementById("auth-user-name");
+    const btnLandingGoogle = document.getElementById("btn-landing-google-auth");
 
     if (user && user.email) {
       if (authUserView) authUserView.classList.remove("hidden");
@@ -812,6 +811,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      if (btnLandingGoogle) {
+        btnLandingGoogle.innerHTML = `<i data-lucide="shield-check"></i><span>Signed in (${escapeHtml(displayLabel)})</span>`;
+        btnLandingGoogle.style.background = "rgba(16, 185, 129, 0.15)";
+        btnLandingGoogle.style.color = "#34D399";
+        btnLandingGoogle.style.borderColor = "rgba(16, 185, 129, 0.4)";
+      }
+
       // If user was prompted to sign in to drop a pin, resume pin placement
       if (state.pendingReportLatLng) {
         const pending = state.pendingReportLatLng;
@@ -829,6 +835,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (accountLabel) accountLabel.textContent = "Sign In";
       if (accountAvatar) {
         accountAvatar.innerHTML = '<i data-lucide="user"></i>';
+      }
+
+      if (btnLandingGoogle) {
+        btnLandingGoogle.innerHTML = `<svg class="google-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg><span>Continue with Google</span>`;
+        btnLandingGoogle.style.background = "";
+        btnLandingGoogle.style.color = "";
+        btnLandingGoogle.style.borderColor = "";
       }
       refreshIcons();
     }
