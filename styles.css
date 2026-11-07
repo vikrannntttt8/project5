@@ -2701,6 +2701,194 @@ html, body {
 }
 
 /* ==========================================================================
+   14.1 Cinematic Loading Screen / Transition Overlay
+   ========================================================================== */
+.app-loader {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  width: 100vw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #020617;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, #0F172A 0%, #020617 75%, #000000 100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1), visibility 320ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app-loader.is-active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.app-loader.is-closing {
+  opacity: 0 !important;
+  transform: scale(1.02);
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none !important;
+}
+
+.app-loader.hidden {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.loader-ambient-glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.08) 50%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  animation: pulseAmbientLoader 3s infinite ease-in-out;
+}
+
+.loader-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+
+.loader-core {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-core-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid rgba(51, 65, 85, 0.35);
+  border-top-color: #10B981;
+  border-right-color: rgba(6, 182, 212, 0.7);
+  animation: loaderSpin 1.1s linear infinite;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.22);
+}
+
+.loader-pulse-core {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.2), 0 0 20px rgba(16, 185, 129, 0.25);
+  animation: pulseCoreGlow 1.8s infinite ease-in-out;
+}
+
+.loader-shield-icon {
+  width: 26px;
+  height: 26px;
+  color: #10B981;
+  stroke: #10B981;
+}
+
+.loader-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  text-align: center;
+}
+
+.loader-brand {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(16, 185, 129, 0.85);
+}
+
+.loader-status {
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: #F4F4F5;
+  letter-spacing: -0.01em;
+  min-height: 24px;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.loader-status.text-fading {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.loader-progress-track {
+  width: 190px;
+  height: 3px;
+  background: rgba(39, 39, 42, 0.8);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.loader-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10B981, #06B6D4);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+  transition: width 380ms ease-out;
+}
+
+@keyframes loaderSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulseCoreGlow {
+  0%, 100% {
+    transform: scale(0.96);
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.2), 0 0 15px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.35), 0 0 28px rgba(16, 185, 129, 0.45);
+  }
+}
+
+@keyframes pulseAmbientLoader {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
    15. Accessibility & Motion Preferences
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -2718,7 +2906,8 @@ html, body {
   }
   .sheet, .landing-card, .landing-backdrop, .landing-overlay, .landing-fullscreen,
   .anim-hero-badge, .anim-hero-header, .anim-bento-1, .anim-bento-2, .anim-bento-3,
-  .anim-hero-footer, .anim-pulse-emerald, .anim-pulse-google {
+  .anim-hero-footer, .anim-pulse-emerald, .anim-pulse-google,
+  .app-loader, .loader-core-ring, .loader-pulse-core, .loader-ambient-glow, .loader-progress-fill {
     transition: none !important;
     animation: none !important;
   }

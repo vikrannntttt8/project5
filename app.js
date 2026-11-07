@@ -707,21 +707,138 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
+   * Displays the dedicated cinematic full-screen transition loader and smoothly
+   * progresses from the landing takeover to the interactive map.
+   */
+  function startCinematicMapTransition() {
+    const landingOverlay = document.getElementById("landing-overlay");
+    const loader = document.getElementById("app-loader");
+    const statusText = document.getElementById("loader-status-text");
+    const progressBar = document.getElementById("loader-progress-bar");
+    const btnLandingDismiss = document.getElementById("btn-landing-dismiss");
+
+    if (btnLandingDismiss) {
+      btnLandingDismiss.disabled = true;
+    }
+
+    try {
+      sessionStorage.setItem("landing_dismissed", "true");
+      sessionStorage.setItem("jugnu_landing_explored", "true");
+      localStorage.setItem("jugnu_landing_seen", "1");
+      localStorage.setItem("jugnu_onboarded", "1");
+    } catch {
+      // Ignore storage restrictions
+    }
+
+    const legacySheet = document.getElementById("welcome-sheet");
+    if (legacySheet && !legacySheet.classList.contains("hidden")) {
+      closeSheet(legacySheet);
+    }
+
+    if (!loader) {
+      // Fallback if loader element is missing
+      if (landingOverlay) {
+        landingOverlay.classList.add("is-closing");
+        setTimeout(() => {
+          landingOverlay.classList.remove("is-closing", "active", "is-open");
+          landingOverlay.classList.add("hidden");
+          landingOverlay.style.display = "none";
+          if (btnLandingDismiss) btnLandingDismiss.disabled = false;
+          if (state.map) state.map.invalidateSize();
+        }, 300);
+      }
+      return;
+    }
+
+    // Set initial loader state
+    if (statusText) statusText.textContent = "Calibrating secure map tiles...";
+    if (progressBar) progressBar.style.width = "25%";
+    loader.classList.remove("hidden");
+    loader.classList.remove("is-closing");
+    void loader.offsetWidth;
+    loader.classList.add("is-active");
+    refreshIcons();
+
+    // Simultaneously fade out the full-screen landing overlay
+    if (landingOverlay) {
+      landingOverlay.classList.add("is-closing");
+      setTimeout(() => {
+        landingOverlay.classList.remove("is-closing", "active", "is-open");
+        landingOverlay.classList.add("hidden");
+        landingOverlay.style.display = "none";
+      }, 300);
+    }
+
+    // Check user motion preferences
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setTimeout(() => {
+        loader.classList.remove("is-active");
+        loader.classList.add("hidden");
+        if (btnLandingDismiss) btnLandingDismiss.disabled = false;
+        if (state.map) {
+          state.map.invalidateSize();
+          updateReportsInViewCount();
+        }
+      }, 150);
+      return;
+    }
+
+    // Sequence Stage 2 (480ms): "Syncing community safety feeds..."
+    setTimeout(() => {
+      if (statusText) {
+        statusText.classList.add("text-fading");
+        setTimeout(() => {
+          statusText.textContent = "Syncing community safety feeds...";
+          statusText.classList.remove("text-fading");
+        }, 120);
+      }
+      if (progressBar) progressBar.style.width = "68%";
+    }, 480);
+
+    // Sequence Stage 3 (960ms): "Launching Jugnu..."
+    setTimeout(() => {
+      if (statusText) {
+        statusText.classList.add("text-fading");
+        setTimeout(() => {
+          statusText.textContent = "Launching Jugnu...";
+          statusText.classList.remove("text-fading");
+        }, 120);
+      }
+      if (progressBar) progressBar.style.width = "100%";
+      // Pre-warm map viewport before loader fades out
+      if (state.map) {
+        state.map.invalidateSize();
+      }
+    }, 960);
+
+    // Sequence Stage 4 (1380ms): Smooth fade-out to reveal live map
+    setTimeout(() => {
+      loader.classList.add("is-closing");
+      setTimeout(() => {
+        loader.classList.remove("is-active", "is-closing");
+        loader.classList.add("hidden");
+        if (btnLandingDismiss) {
+          btnLandingDismiss.disabled = false;
+        }
+        if (state.map) {
+          state.map.invalidateSize();
+          updateReportsInViewCount();
+        }
+      }, 350);
+    }, 1380);
+  }
+
+  /**
    * Smoothly dismisses the Animated Intro & Landing Frontpage Overlay.
-   * If explored is true ("Explore Live Map" clicked), records landing_dismissed in sessionStorage
-   * so it does not pop up again on refresh during this browser session.
+   * If explored is true ("Explore Live Map" clicked), triggers the cinematic transition loader
+   * and records landing_dismissed in sessionStorage.
    * @param {boolean} explored - Whether the dismissal was triggered by "Explore Live Map".
    */
   function dismissLandingOverlay(explored = false) {
     if (explored) {
-      try {
-        sessionStorage.setItem("landing_dismissed", "true");
-        sessionStorage.setItem("jugnu_landing_explored", "true");
-        localStorage.setItem("jugnu_landing_seen", "1");
-        localStorage.setItem("jugnu_onboarded", "1");
-      } catch {
-        // Ignore storage restrictions
-      }
+      startCinematicMapTransition();
+      return;
     }
 
     const overlay = document.getElementById("landing-overlay");

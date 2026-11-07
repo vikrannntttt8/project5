@@ -235,6 +235,26 @@
     })();
   </script>
 
+  <!-- Cinematic Full-Screen Transition Loader -->
+  <div id="app-loader" class="app-loader hidden" aria-live="polite" aria-atomic="true">
+    <div class="loader-ambient-glow" aria-hidden="true"></div>
+    <div class="loader-content">
+      <div class="loader-core">
+        <div class="loader-core-ring" aria-hidden="true"></div>
+        <div class="loader-pulse-core" aria-hidden="true">
+          <i data-lucide="shield-check" class="loader-shield-icon"></i>
+        </div>
+      </div>
+      <div class="loader-text-group">
+        <span class="loader-brand">JUGNU</span>
+        <p id="loader-status-text" class="loader-status">Calibrating secure map tiles...</p>
+      </div>
+      <div class="loader-progress-track" aria-hidden="true">
+        <div id="loader-progress-bar" class="loader-progress-fill"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Legacy Welcome Bottom Sheet (Fallback for backwards compatibility) -->
   <section id="welcome-sheet" class="sheet welcome-sheet hidden" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-hidden="true">
     <div class="sheet-handle" aria-hidden="true"></div>
