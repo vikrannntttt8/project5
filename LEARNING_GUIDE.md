@@ -1009,3 +1009,9 @@ During the autonomous implementation of Jugnu, the following decisions were made
    - `SafetyStore` wraps all `localStorage` access in `try/catch` and maintains in-memory arrays so the application continues to run seamlessly even when browser security policies block local storage.
 5. **Reverse Geocoding Fallback:**
    - When the Nominatim reverse API is slow or fails due to network dropouts, `app.js` displays formatted coordinates `"Pinned location (19.0760, 72.8777)"` so the user is never blocked from publishing a report.
+6. **Hyper-Local & Gully Geocoding with Fuzzy Fallback:**
+   - Standard OpenStreetMap Nominatim queries often omit hyper-local alleys, gullies, chawls, and station skywalks. Implemented Mumbai geographic viewport biasing (`viewbox=72.75,19.35,73.05,18.85`) combined with client-side trigram and token-level fuzzy matching across 25+ local Mumbai landmarks and crowdsourced pins, with an informative empty state dropdown.
+7. **SaaS Hero Landing Modal with Automatic Session Load:**
+   - Upgraded onboarding into a dark obsidian SaaS hero layout (`.saas-hero-card`) featuring frosted glass diffusion, emerald ambient glow, 3-step responsive bento cards (`01`, `02`, `03`), and a primary "Explore Live Map" CTA. Configured to open automatically by default on page load and refresh unless explicitly explored in the active browser session (`sessionStorage.getItem("jugnu_landing_explored") === "true"`).
+8. **Direct Google OAuth & Magic Link Purge:**
+   - Replaced obsolete magic links with direct Google OAuth (`signInWithOAuth({ provider: "google" })`) alongside standard Email/Password authentication. Positioned a high-converting "Continue with Google" button directly inside the landing modal and unified `#auth-modal` with the identical dark obsidian glassmorphic aesthetic.
