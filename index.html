@@ -65,8 +65,8 @@
       </form>
     </div>
 
-    <!-- Horizontally Scrollable Filter Pills -->
-    <div id="filter-bar" class="filter-bar" role="toolbar" aria-label="Filter safety reports">
+    <!-- Filter Pills (Wrapping Responsive Layout) -->
+    <div id="filter-bar" class="filter-bar flex flex-wrap gap-2 sm:gap-3 items-center" role="toolbar" aria-label="Filter safety reports">
       <button type="button" class="pill is-active" data-filter="all">
         <i data-lucide="layers"></i>
         <span>All Reports</span>
@@ -111,8 +111,8 @@
     </button>
   </aside>
 
-  <!-- Full-Screen Immersive Landing Viewport Takeover -->
-  <div id="landing-overlay" class="landing-overlay landing-fullscreen hidden" role="dialog" aria-modal="true" aria-labelledby="landing-hero-title">
+  <!-- Full-Screen Immersive Landing Viewport Takeover (Defaults to visible on load) -->
+  <div id="landing-overlay" class="landing-overlay landing-fullscreen active is-open" role="dialog" aria-modal="true" aria-labelledby="landing-hero-title">
     <!-- Ambient Canvas Glows -->
     <div class="landing-ambient-canvas" aria-hidden="true">
       <div class="ambient-glow glow-emerald"></div>
@@ -220,6 +220,20 @@
       </div>
     </div>
   </div>
+  <script>
+    (function() {
+      try {
+        if (sessionStorage.getItem('landing_dismissed') === 'true') {
+          var ov = document.getElementById('landing-overlay');
+          if (ov) {
+            ov.classList.add('hidden');
+            ov.classList.remove('active', 'is-open');
+            ov.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Legacy Welcome Bottom Sheet (Fallback for backwards compatibility) -->
   <section id="welcome-sheet" class="sheet welcome-sheet hidden" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-hidden="true">

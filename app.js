@@ -666,22 +666,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Displays the Animated Intro & Landing Frontpage Overlay automatically by default
-   * whenever the webpage is loaded or refreshed (unless the user has explicitly clicked
-   * "Explore Live Map" in the current session).
+   * on DOMContentLoaded (unless sessionStorage.getItem('landing_dismissed') is set).
    */
   function maybeShowWelcome() {
-    let exploredInSession = false;
+    let isDismissed = false;
     try {
-      exploredInSession = sessionStorage.getItem("jugnu_landing_explored") === "true";
+      isDismissed = sessionStorage.getItem("landing_dismissed") === "true";
     } catch {
-      exploredInSession = false;
+      isDismissed = false;
     }
 
     const urlParams = new URLSearchParams(window.location.search);
     const forceIntro = urlParams.get("intro") === "1" || urlParams.get("about") === "1" || urlParams.get("welcome") === "1";
 
-    if (!exploredInSession || forceIntro) {
+    const overlay = document.getElementById("landing-overlay");
+    if (!overlay) return;
+
+    if (!isDismissed || forceIntro) {
       showLandingOverlay();
+    } else {
+      overlay.classList.add("hidden");
+      overlay.classList.remove("active", "is-open");
+      overlay.style.display = "none";
     }
   }
 
@@ -691,22 +697,25 @@ document.addEventListener("DOMContentLoaded", () => {
   function showLandingOverlay() {
     const overlay = document.getElementById("landing-overlay");
     if (!overlay) return;
+    overlay.style.display = "flex";
     overlay.classList.remove("hidden");
     overlay.classList.remove("is-closing");
-    void overlay.offsetWidth;
+    overlay.classList.add("active");
     overlay.classList.add("is-open");
+    void overlay.offsetWidth;
     refreshIcons();
   }
 
   /**
    * Smoothly dismisses the Animated Intro & Landing Frontpage Overlay.
-   * If explored is true ("Explore Live Map" clicked), records in sessionStorage so it does not pop up again
-   * on refresh during this browser session.
+   * If explored is true ("Explore Live Map" clicked), records landing_dismissed in sessionStorage
+   * so it does not pop up again on refresh during this browser session.
    * @param {boolean} explored - Whether the dismissal was triggered by "Explore Live Map".
    */
   function dismissLandingOverlay(explored = false) {
     if (explored) {
       try {
+        sessionStorage.setItem("landing_dismissed", "true");
         sessionStorage.setItem("jugnu_landing_explored", "true");
         localStorage.setItem("jugnu_landing_seen", "1");
         localStorage.setItem("jugnu_onboarded", "1");
@@ -720,8 +729,14 @@ document.addEventListener("DOMContentLoaded", () => {
       overlay.classList.add("is-closing");
       setTimeout(() => {
         overlay.classList.remove("is-closing");
+        overlay.classList.remove("active");
         overlay.classList.remove("is-open");
         overlay.classList.add("hidden");
+        overlay.style.display = "none";
+        // Reveal map seamlessly by recalculating Leaflet viewport dimensions
+        if (state.map) {
+          state.map.invalidateSize();
+        }
       }, 300);
     }
 
