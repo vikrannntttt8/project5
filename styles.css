@@ -2097,120 +2097,106 @@ html, body {
 /* ==========================================================================
    14. Animated Intro & Landing Frontpage Overlay (High-End SaaS Hero Style)
    ========================================================================== */
-.landing-overlay {
+/* ==========================================================================
+   14. Full-Screen Immersive Landing Takeover (Edge-to-Edge Obsidian Viewport)
+   ========================================================================== */
+.landing-overlay.landing-fullscreen {
   position: fixed;
   inset: 0;
+  width: 100%;
+  width: 100vw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #020617;
+  background: radial-gradient(ellipse 90% 65% at 50% 0%, #0F172A 0%, #020617 70%, #000000 100%);
   overflow-y: auto;
-  padding: 16px;
+  overflow-x: hidden;
+  padding: 0;
+  margin: 0;
+  border: none !important;
+  outline: none !important;
   opacity: 1;
   visibility: visible;
-  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), visibility 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1), transform 320ms cubic-bezier(0.16, 1, 0.3, 1), visibility 320ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.landing-overlay.hidden {
+.landing-overlay.landing-fullscreen.hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   display: none !important;
 }
 
-.landing-overlay.is-closing {
+.landing-overlay.landing-fullscreen.is-closing {
   opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
 
-.landing-overlay.is-closing .saas-hero-card,
-.landing-overlay.is-closing .landing-card {
-  transform: translateY(20px) scale(0.96);
-  opacity: 0;
-}
-
-.landing-backdrop {
+/* Ambient Radial Glows (No borders, pure ambient neon mesh) */
+.landing-ambient-canvas {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.90);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  animation: landingFadeIn 320ms ease-out;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
 }
 
-.landing-modal-container {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: 740px;
-  margin: auto;
-}
-
-.saas-hero-card {
-  position: relative;
-  background: linear-gradient(175deg, rgba(15, 23, 42, 0.94) 0%, rgba(2, 6, 23, 0.98) 100%);
-  border: 1px solid rgba(51, 65, 85, 0.7);
-  border-radius: 26px;
-  box-shadow: 0 35px 100px -15px rgba(0, 0, 0, 0.95), 0 0 50px -10px rgba(16, 185, 129, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  padding: 28px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  max-height: calc(94dvh - 20px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  animation: landingSlideUp 380ms cubic-bezier(0.16, 1, 0.3, 1);
-  transition: transform 260ms ease-out, opacity 260ms ease-out;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Ambient Radial Top Glow */
-.saas-hero-card::before {
-  content: "";
+.ambient-glow {
   position: absolute;
-  top: -60px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(100px);
+}
+
+.glow-emerald {
+  top: -120px;
   left: 50%;
   transform: translateX(-50%);
-  width: 320px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%);
-  pointer-events: none;
-  filter: blur(35px);
-  border-radius: 50%;
+  width: 680px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
 }
 
-/* Minimalist Top-Right Ghost Close Button */
-.saas-close-btn {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94A3B8;
+.glow-cyan {
+  bottom: -100px;
+  right: 15%;
+  width: 520px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.16) 0%, transparent 70%);
+}
+
+/* Centered Full-Screen Content Shell */
+.landing-immersive-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 980px;
+  margin: auto;
+  padding: 48px 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 20;
-  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease, border-color 150ms ease;
+  gap: 28px;
+  box-sizing: border-box;
 }
 
-.saas-close-btn:hover, .saas-close-btn:focus-visible {
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
+@media (min-width: 640px) {
+  .landing-immersive-shell {
+    padding: 64px 32px 56px 32px;
+    gap: 32px;
+  }
 }
 
-.saas-close-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* 1. Top Badge */
+/* 1. Top Pill Badge */
 .saas-badge-wrap {
   display: flex;
   justify-content: center;
@@ -2221,43 +2207,43 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
+  padding: 8px 18px;
   border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.09);
-  border: 1px solid rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   color: #34D399;
   font-family: var(--font-heading);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow: 0 0 24px rgba(16, 185, 129, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.22);
 }
 
 .saas-hero-badge svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   stroke: #34D399;
   stroke-width: 2.2;
 }
 
-/* 2. Hero Header */
+/* 2. Hero Header & Mission Statement */
 .saas-hero-header {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
-  max-width: 620px;
+  gap: 14px;
+  max-width: 680px;
   margin: 0 auto;
 }
 
 .saas-hero-title {
   font-family: var(--font-heading);
-  font-size: clamp(24px, 4vw, 35px);
+  font-size: clamp(26px, 4.5vw, 42px);
   font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
   text-align: center;
   color: #F8FAFC;
   text-rendering: optimizeLegibility;
@@ -2266,11 +2252,11 @@ html, body {
 
 .saas-hero-sub {
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.65;
   color: #94A3B8;
   text-align: center;
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
 }
 
@@ -2278,40 +2264,36 @@ html, body {
 .saas-bento-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 16px;
+  width: 100%;
   margin-top: 4px;
 }
 
 @media (min-width: 640px) {
-  .saas-hero-card {
-    padding: 38px 36px 32px 36px;
-    gap: 26px;
-  }
   .saas-bento-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 16px;
   }
 }
 
 .saas-bento-card {
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(51, 65, 85, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 18px;
-  padding: 18px 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   text-align: left;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), border-color 240ms ease, box-shadow 240ms ease;
 }
 
 .saas-bento-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(16, 185, 129, 0.16);
 }
 
 .saas-card-top {
@@ -2329,9 +2311,9 @@ html, body {
 }
 
 .saas-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2365,41 +2347,41 @@ html, body {
 
 .saas-card-title {
   font-family: var(--font-heading);
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 700;
   color: #F1F5F9;
   line-height: 1.35;
 }
 
 .saas-card-desc {
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.55;
   color: #94A3B8;
 }
 
-/* 4. Action Footer & High-Converting CTA Area */
+/* 4. Action Footer & Glowing CTA Buttons */
 .saas-hero-footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin-top: 6px;
+  gap: 16px;
+  margin-top: 8px;
   width: 100%;
 }
 
 .saas-cta-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  max-width: 600px;
+  max-width: 620px;
 }
 
 @media (min-width: 640px) {
   .saas-cta-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 16px;
   }
 }
 
@@ -2410,8 +2392,8 @@ html, body {
   justify-content: center;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
-  padding: 13px 22px;
+  min-height: 54px;
+  padding: 14px 24px;
   background: #FFFFFF;
   color: #0F172A;
   font-family: var(--font-body);
@@ -2420,7 +2402,6 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 9999px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.1);
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease;
   -webkit-font-smoothing: antialiased;
 }
@@ -2428,7 +2409,6 @@ html, body {
 .btn-saas-google:hover, .btn-saas-google:focus-visible {
   background: #F8FAFC;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 26px rgba(255, 255, 255, 0.16);
 }
 
 .btn-saas-google svg {
@@ -2444,8 +2424,8 @@ html, body {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  min-height: 52px;
-  padding: 14px 24px;
+  min-height: 54px;
+  padding: 14px 26px;
   background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: #020617;
   font-family: var(--font-heading);
@@ -2454,7 +2434,6 @@ html, body {
   letter-spacing: -0.01em;
   border: none;
   border-radius: 9999px;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4), 0 0 35px rgba(16, 185, 129, 0.2);
   cursor: pointer;
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), filter 180ms ease;
 }
@@ -2462,7 +2441,6 @@ html, body {
 .btn-saas-primary:hover, .btn-saas-primary:focus-visible {
   filter: brightness(1.08);
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.55), 0 0 45px rgba(16, 185, 129, 0.35);
 }
 
 .btn-saas-primary svg {
@@ -2483,7 +2461,7 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 8px 14px;
   font-size: 13px;
   color: #64748B;
   margin-top: 2px;
@@ -2605,21 +2583,69 @@ html, body {
   border-radius: 16px !important;
 }
 
-/* Entrance Keyframes */
-@keyframes landingFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* ==========================================================================
+   Aesthetic Entrance & Pulsing Glow Keyframes
+   ========================================================================== */
+@keyframes landingFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes landingSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(28px) scale(0.97);
+@keyframes pulseGlowEmerald {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.38), 0 0 35px rgba(16, 185, 129, 0.2);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  50% {
+    box-shadow: 0 6px 28px rgba(16, 185, 129, 0.62), 0 0 52px rgba(16, 185, 129, 0.36);
   }
+}
+
+@keyframes pulseGlowGoogle {
+  0%, 100% {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4), 0 0 18px rgba(255, 255, 255, 0.08);
+  }
+  50% {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 28px rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Staggered entrance animations */
+.anim-hero-badge {
+  animation: landingFadeSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.anim-hero-header {
+  animation: landingFadeSlideUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.anim-bento-1 {
+  animation: landingFadeSlideUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.anim-bento-2 {
+  animation: landingFadeSlideUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+.anim-bento-3 {
+  animation: landingFadeSlideUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+.anim-hero-footer {
+  animation: landingFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}
+
+.anim-pulse-emerald {
+  animation: pulseGlowEmerald 3.5s infinite ease-in-out;
+}
+
+.anim-pulse-google {
+  animation: pulseGlowGoogle 3.5s infinite ease-in-out;
 }
 
 /* ==========================================================================
@@ -2638,7 +2664,9 @@ html, body {
   .zone-unsafe, .jugnu-pin-wrap-unsafe .jugnu-pin {
     animation: none !important;
   }
-  .sheet, .landing-card, .landing-backdrop, .landing-overlay {
+  .sheet, .landing-card, .landing-backdrop, .landing-overlay, .landing-fullscreen,
+  .anim-hero-badge, .anim-hero-header, .anim-bento-1, .anim-bento-2, .anim-bento-3,
+  .anim-hero-footer, .anim-pulse-emerald, .anim-pulse-google {
     transition: none !important;
     animation: none !important;
   }

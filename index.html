@@ -111,112 +111,111 @@
     </button>
   </aside>
 
-  <!-- Animated Intro & Landing Frontpage Overlay (High-End SaaS Hero Style) -->
-  <div id="landing-overlay" class="landing-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="landing-hero-title">
-    <div class="landing-backdrop" id="landing-backdrop"></div>
-    <div class="landing-modal-container px-4 sm:px-6">
-      <div class="landing-card saas-hero-card">
-        <!-- Close Button (Top-Right Minimalist Ghost) -->
-        <button type="button" id="btn-landing-close" class="landing-close-btn saas-close-btn" aria-label="Close intro modal">
-          <i data-lucide="x"></i>
-        </button>
+  <!-- Full-Screen Immersive Landing Viewport Takeover -->
+  <div id="landing-overlay" class="landing-overlay landing-fullscreen hidden" role="dialog" aria-modal="true" aria-labelledby="landing-hero-title">
+    <!-- Ambient Canvas Glows -->
+    <div class="landing-ambient-canvas" aria-hidden="true">
+      <div class="ambient-glow glow-emerald"></div>
+      <div class="ambient-glow glow-cyan"></div>
+    </div>
 
-        <!-- Top Glowing Pill Badge -->
-        <div class="saas-badge-wrap">
-          <div class="saas-hero-badge">
-            <i data-lucide="sparkles"></i>
-            <span>JUGNU • COMMUNITY SAFETY MAP</span>
-          </div>
+    <!-- Centered Full-Screen Shell -->
+    <div class="landing-immersive-shell">
+      <!-- Top Glowing Pill Badge -->
+      <div class="saas-badge-wrap anim-hero-badge">
+        <div class="saas-hero-badge">
+          <i data-lucide="sparkles"></i>
+          <span>JUGNU • COMMUNITY SAFETY MAP</span>
         </div>
+      </div>
 
-        <!-- Hero Section: Centered Typography & Mission Statement -->
-        <div class="saas-hero-header">
-          <h1 id="landing-hero-title" class="saas-hero-title">
-            Know the street before you step onto it.
-          </h1>
-          <p class="saas-hero-sub">
-            A community-driven safety map for crowdsourced risk visualization and verified safe routing. Check real-time street illumination, open shops, crowd levels, and street hazard warnings before walking through unfamiliar lanes and gullies.
+      <!-- Hero Header & Mission Statement -->
+      <div class="saas-hero-header anim-hero-header">
+        <h1 id="landing-hero-title" class="saas-hero-title">
+          Know the street before you step onto it.
+        </h1>
+        <p class="saas-hero-sub">
+          A community-driven safety map for crowdsourced risk visualization and verified safe routing. Check real-time street illumination, open shops, crowd levels, and street hazard warnings before walking through unfamiliar lanes and gullies.
+        </p>
+      </div>
+
+      <!-- Feature / Step Cards: Bento-Style Grid with Staggered Entrance -->
+      <div class="saas-bento-grid">
+        <!-- Step Card 01 -->
+        <div class="saas-bento-card anim-bento-1">
+          <div class="saas-card-top">
+            <span class="saas-card-step">01</span>
+            <div class="saas-icon-box icon-emerald">
+              <i data-lucide="map-pin"></i>
+            </div>
+          </div>
+          <h3 class="saas-card-title">1. Explore community safety pins</h3>
+          <p class="saas-card-desc">
+            Browse street-level reports across stations, gullies, chawls, and bus stops with verified lighting conditions, open shops, and police presence.
           </p>
         </div>
 
-        <!-- Feature / Step Cards: Bento-Style Grid -->
-        <div class="saas-bento-grid">
-          <!-- Step Card 01 -->
-          <div class="saas-bento-card">
-            <div class="saas-card-top">
-              <span class="saas-card-step">01</span>
-              <div class="saas-icon-box icon-emerald">
-                <i data-lucide="map-pin"></i>
-              </div>
+        <!-- Step Card 02 -->
+        <div class="saas-bento-card anim-bento-2">
+          <div class="saas-card-top">
+            <span class="saas-card-step">02</span>
+            <div class="saas-icon-box icon-amber">
+              <i data-lucide="sliders-horizontal"></i>
             </div>
-            <h3 class="saas-card-title">1. Explore community safety pins</h3>
-            <p class="saas-card-desc">
-              Browse street-level reports across stations, gullies, chawls, and bus stops with verified lighting conditions, open shops, and police presence.
-            </p>
           </div>
-
-          <!-- Step Card 02 -->
-          <div class="saas-bento-card">
-            <div class="saas-card-top">
-              <span class="saas-card-step">02</span>
-              <div class="saas-icon-box icon-amber">
-                <i data-lucide="sliders-horizontal"></i>
-              </div>
-            </div>
-            <h3 class="saas-card-title">2. Filter by Caution/Unsafe zones</h3>
-            <p class="saas-card-desc">
-              Filter by Caution (dim streetlights, empty turns) or Unsafe zones (pitch dark, stalking alerts) to map out your safest commute path home.
-            </p>
-          </div>
-
-          <!-- Step Card 03 -->
-          <div class="saas-bento-card">
-            <div class="saas-card-top">
-              <span class="saas-card-step">03</span>
-              <div class="saas-icon-box icon-cyan">
-                <i data-lucide="shield-alert"></i>
-              </div>
-            </div>
-            <h3 class="saas-card-title">3. Contribute verified local updates</h3>
-            <p class="saas-card-desc">
-              Tap anywhere on the map or press Report to alert others of dark gullies, or confirm existing pins with a single tap to build community trust.
-            </p>
-          </div>
+          <h3 class="saas-card-title">2. Filter by Caution/Unsafe zones</h3>
+          <p class="saas-card-desc">
+            Filter by Caution (dim streetlights, empty turns) or Unsafe zones (pitch dark, stalking alerts) to map out your safest commute path home.
+          </p>
         </div>
 
-        <!-- Action Footer with Glowing Primary CTA & Google Auth -->
-        <div class="saas-hero-footer">
-          <div class="saas-cta-actions">
-            <!-- Prominent Google Auth Button -->
-            <button type="button" id="btn-landing-google-auth" class="btn-saas-google" aria-label="Continue with Google">
-              <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-
-            <!-- Glowing Primary Explore CTA Button -->
-            <button type="button" id="btn-landing-dismiss" class="btn-saas-primary">
-              <span>Explore Live Map</span>
-              <i data-lucide="arrow-right"></i>
-            </button>
+        <!-- Step Card 03 -->
+        <div class="saas-bento-card anim-bento-3">
+          <div class="saas-card-top">
+            <span class="saas-card-step">03</span>
+            <div class="saas-icon-box icon-cyan">
+              <i data-lucide="shield-alert"></i>
+            </div>
           </div>
+          <h3 class="saas-card-title">3. Contribute verified local updates</h3>
+          <p class="saas-card-desc">
+            Tap anywhere on the map or press Report to alert others of dark gullies, or confirm existing pins with a single tap to build community trust.
+          </p>
+        </div>
+      </div>
 
-          <!-- Secondary Links: Email Auth & Community Trust Note -->
-          <div class="saas-footer-sublinks">
-            <button type="button" id="btn-landing-email-auth" class="saas-link-btn">
-              <i data-lucide="mail"></i>
-              <span>Or sign in with email & password</span>
-            </button>
-            <span class="saas-dot-sep" aria-hidden="true">•</span>
-            <span class="saas-footer-note">
-              <i data-lucide="shield-check"></i>
-              <span>Emergency tools (WhatsApp SOS & Fake Call) active 24/7</span>
-            </span>
-          </div>
+      <!-- Action Footer with Glowing Primary CTA & Google Auth -->
+      <div class="saas-hero-footer anim-hero-footer">
+        <div class="saas-cta-actions">
+          <!-- Prominent Google Auth Button with Ambient Pulse Glow -->
+          <button type="button" id="btn-landing-google-auth" class="btn-saas-google anim-pulse-google" aria-label="Continue with Google">
+            <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <!-- Glowing Primary Explore CTA Button with Ambient Pulse Glow -->
+          <button type="button" id="btn-landing-dismiss" class="btn-saas-primary anim-pulse-emerald">
+            <span>Explore Live Map</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- Secondary Links: Email Auth & Community Trust Note -->
+        <div class="saas-footer-sublinks">
+          <button type="button" id="btn-landing-email-auth" class="saas-link-btn">
+            <i data-lucide="mail"></i>
+            <span>Or sign in with email & password</span>
+          </button>
+          <span class="saas-dot-sep" aria-hidden="true">•</span>
+          <span class="saas-footer-note">
+            <i data-lucide="shield-check"></i>
+            <span>Emergency tools (WhatsApp SOS & Fake Call) active 24/7</span>
+          </span>
         </div>
       </div>
     </div>

@@ -161,25 +161,11 @@ document.addEventListener("DOMContentLoaded", () => {
    * Binds event listeners to interactive DOM elements.
    */
   function bindEvents() {
-    // Landing Overlay Actions
+    // Full-Screen Immersive Landing Overlay Actions
     const btnLandingDismiss = document.getElementById("btn-landing-dismiss");
     if (btnLandingDismiss) {
       btnLandingDismiss.addEventListener("click", () => {
         dismissLandingOverlay(true);
-      });
-    }
-
-    const btnLandingClose = document.getElementById("btn-landing-close");
-    if (btnLandingClose) {
-      btnLandingClose.addEventListener("click", () => {
-        dismissLandingOverlay(false);
-      });
-    }
-
-    const landingBackdrop = document.getElementById("landing-backdrop");
-    if (landingBackdrop) {
-      landingBackdrop.addEventListener("click", () => {
-        dismissLandingOverlay(false);
       });
     }
 
@@ -193,6 +179,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnLandingEmailAuth = document.getElementById("btn-landing-email-auth");
     if (btnLandingEmailAuth) {
       btnLandingEmailAuth.addEventListener("click", () => {
+        dismissLandingOverlay(false);
+        openSheet(document.getElementById("auth-modal"));
+      });
+    }
         dismissLandingOverlay(false);
         openSheet(document.getElementById("auth-modal"));
       });
@@ -736,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
         overlay.classList.remove("is-closing");
         overlay.classList.remove("is-open");
         overlay.classList.add("hidden");
-      }, 260);
+      }, 300);
     }
 
     const legacySheet = document.getElementById("welcome-sheet");
