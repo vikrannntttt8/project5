@@ -650,6 +650,24 @@ html, body {
   font-weight: 600;
 }
 
+.pill.pill-safe-corridor {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #10B981;
+}
+
+.pill.pill-safe-corridor:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10B981;
+}
+
+.pill.pill-safe-corridor.is-active {
+  background: #10B981 !important;
+  border-color: #10B981 !important;
+  color: #020617 !important;
+  font-weight: 700;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.55);
+}
+
 @media (min-width: 640px) {
   .pill {
     height: 44px;
@@ -1453,6 +1471,427 @@ html, body {
   border-color: var(--unsafe);
   color: var(--unsafe);
   opacity: 1 !important;
+}
+
+/* Live Community Trust Counter Banner in Inspect Card */
+.inspect-trust-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #10B981;
+  font-weight: 500;
+}
+
+.inspect-trust-banner i, .inspect-trust-banner svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   8.5 Instant AI Safety Audit Side Drawer & Safe Corridor Mode
+   ========================================================================== */
+.safety-audit-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 410px;
+  max-width: 92vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(9, 9, 11, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(39, 39, 42, 0.8);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.safety-audit-drawer.is-open {
+  transform: translateX(0);
+}
+
+.safety-audit-drawer.hidden {
+  display: none !important;
+}
+
+.audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+  background: rgba(18, 18, 21, 0.7);
+  flex-shrink: 0;
+}
+
+.audit-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-ai-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10B981;
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.audit-ai-pill i, .audit-ai-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.audit-timestamp {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.audit-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.audit-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-area-title {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.audit-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.audit-stat-pill i, .audit-stat-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Community Safety Summary Card */
+.audit-summary-card {
+  background: rgba(28, 28, 33, 0.7);
+  border: 1px solid rgba(39, 39, 42, 0.9);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.audit-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+}
+
+.audit-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+.audit-card-icon i, .audit-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.audit-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-card-title {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.audit-card-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.audit-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.audit-metric-box {
+  background: rgba(18, 18, 21, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.metric-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.text-safe {
+  color: var(--safe) !important;
+}
+
+.text-caution {
+  color: var(--caution) !important;
+}
+
+.text-unsafe {
+  color: var(--unsafe) !important;
+}
+
+.text-emerald {
+  color: #10B981 !important;
+}
+
+.audit-subheading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.audit-subheading i, .audit-subheading svg {
+  width: 15px;
+  height: 15px;
+  color: var(--caution);
+}
+
+.audit-subheading.text-emerald i, .audit-subheading.text-emerald svg {
+  color: #10B981;
+}
+
+.audit-hazards-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audit-hazards-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.audit-hazards-list li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--caution);
+}
+
+.audit-action-block {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-action-text {
+  font-size: 14px;
+  color: #F4F4F5;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Quick-Tap Community Vouch Section */
+.audit-vouch-section {
+  background: rgba(18, 18, 21, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audit-vouch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.audit-vouch-header i, .audit-vouch-header svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.audit-vouch-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.audit-vouch-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-vouch-accurate {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.btn-vouch-accurate:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.btn-vouch-resolved {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.btn-vouch-resolved:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+/* Safe Corridor Map Styling */
+#map.safe-corridor-mode .leaflet-tile-pane {
+  filter: brightness(0.62) contrast(1.3) saturate(0.5);
+  transition: filter 350ms ease;
+}
+
+.safe-corridor-line {
+  stroke-dasharray: 10, 10;
+  animation: corridorDash 20s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.9));
+}
+
+@keyframes corridorDash {
+  to {
+    stroke-dashoffset: -200px;
+  }
+}
+
+.corridor-beacon-halo {
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: beaconPulse 1.8s infinite ease-out;
+}
+
+@keyframes beaconPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 0 18px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Mobile responsive layout for Safety Audit Drawer */
+@media (max-width: 767px) {
+  .safety-audit-drawer {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 82vh;
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border);
+    border-left: none;
+    transform: translateY(100%);
+  }
+  .safety-audit-drawer.is-open {
+    transform: translateY(0);
+  }
 }
 
 /* ==========================================================================
@@ -2907,7 +3346,8 @@ html, body {
   .sheet, .landing-card, .landing-backdrop, .landing-overlay, .landing-fullscreen,
   .anim-hero-badge, .anim-hero-header, .anim-bento-1, .anim-bento-2, .anim-bento-3,
   .anim-hero-footer, .anim-pulse-emerald, .anim-pulse-google,
-  .app-loader, .loader-core-ring, .loader-pulse-core, .loader-ambient-glow, .loader-progress-fill {
+  .app-loader, .loader-core-ring, .loader-pulse-core, .loader-ambient-glow, .loader-progress-fill,
+  .safety-audit-drawer, .safe-corridor-line, .corridor-beacon-halo {
     transition: none !important;
     animation: none !important;
   }

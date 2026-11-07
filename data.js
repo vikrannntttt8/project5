@@ -822,6 +822,9 @@ class SafetyStore {
     if (filter === "caution") return active.filter(r => r.status === "caution");
     if (filter === "safe") return active.filter(r => r.status === "safe");
     if (filter === "night") return active.filter(r => r.isNightReport === true);
+    if (filter === "corridor") {
+      return active.filter(r => r.status === "safe" || (r.tags && r.tags.some(t => t.includes("Streetlights") || t.includes("Police") || t.includes("Crowd") || t.includes("Shops"))));
+    }
     return active;
   }
 

@@ -87,6 +87,10 @@
         <i data-lucide="moon"></i>
         <span>Nighttime Reports Only</span>
       </button>
+      <button type="button" id="btn-safe-corridor" class="pill pill-safe-corridor" data-filter="corridor" aria-pressed="false">
+        <i data-lucide="route"></i>
+        <span>Safe Corridor</span>
+      </button>
     </div>
 
     <!-- Live Reports in View Counter Badge -->
@@ -336,18 +340,117 @@
         <span id="inspect-trust" class="inspect-trust">Confirmed by community</span>
       </div>
 
+      <div class="inspect-trust-banner">
+        <i data-lucide="shield-check"></i>
+        <span id="inspect-trust-counter">Community Trust Score: 94% (12 vouches)</span>
+      </div>
+
       <div class="inspect-actions">
-        <button type="button" id="btn-confirm" class="btn-inspect btn-confirm">
-          <i data-lucide="check"></i>
-          <span>Confirm Still True (+1)</span>
+        <button type="button" id="btn-confirm" class="btn-inspect btn-confirm" aria-label="Confirm report still accurate">
+          <i data-lucide="thumbs-up"></i>
+          <span>Still Accurate / Still Dark</span>
         </button>
-        <button type="button" id="btn-resolve" class="btn-inspect btn-resolve">
-          <i data-lucide="badge-check"></i>
-          <span>Mark Resolved</span>
+        <button type="button" id="btn-resolve" class="btn-inspect btn-resolve" aria-label="Mark report cleared or resolved">
+          <i data-lucide="check-circle-2"></i>
+          <span>Cleared / Resolved</span>
         </button>
       </div>
     </div>
   </section>
+
+  <!-- Instant AI Safety Audit Side Drawer -->
+  <aside id="safety-audit-drawer" class="sheet safety-audit-drawer hidden" aria-labelledby="audit-area-title" role="complementary">
+    <div class="sheet-handle sm:hidden" aria-hidden="true"></div>
+    <div class="audit-header">
+      <div class="audit-badge-wrap">
+        <div class="audit-ai-pill">
+          <i data-lucide="sparkles"></i>
+          <span>AI SAFETY AUDIT</span>
+        </div>
+        <span id="audit-timestamp" class="audit-timestamp">Live Telemetry Brief</span>
+      </div>
+      <button type="button" id="btn-close-audit" class="btn-close" aria-label="Close safety audit drawer">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="audit-scroll-body">
+      <div class="audit-title-section">
+        <h2 id="audit-area-title" class="audit-area-title">Area Name</h2>
+        <div class="audit-status-row">
+          <span id="audit-status-badge" class="inspect-badge badge-safe">Verified Safe</span>
+          <span id="audit-reports-count" class="audit-stat-pill">
+            <i data-lucide="shield-alert"></i>
+            <span id="audit-reports-count-text">2 Active Reports Nearby</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Community Safety Summary Card -->
+      <div class="audit-summary-card">
+        <div class="audit-card-header">
+          <div class="audit-card-icon" aria-hidden="true">
+            <i data-lucide="file-text"></i>
+          </div>
+          <div class="audit-card-title-group">
+            <strong class="audit-card-title">Community Safety Summary</strong>
+            <span class="audit-card-subtitle">Crowdsourced local telemetry & municipal checkpoints</span>
+          </div>
+        </div>
+
+        <div class="audit-metric-grid">
+          <div class="audit-metric-box">
+            <span class="metric-label">Sector Risk Level</span>
+            <strong id="audit-risk-level" class="metric-val text-safe">Low Risk</strong>
+          </div>
+          <div class="audit-metric-box">
+            <span class="metric-label">Community Vouches</span>
+            <strong id="audit-trust-score" class="metric-val">96% Trust</strong>
+          </div>
+        </div>
+
+        <div class="audit-hazards-block">
+          <span class="audit-subheading">
+            <i data-lucide="alert-triangle"></i>
+            <span>Key Hazards & Street Conditions</span>
+          </span>
+          <ul id="audit-hazards-list" class="audit-hazards-list">
+            <li>Dim lighting after 11 PM behind metro pillars</li>
+            <li>Crowd thins out quickly post 10:30 PM</li>
+          </ul>
+        </div>
+
+        <div class="audit-action-block">
+          <span class="audit-subheading text-emerald">
+            <i data-lucide="compass"></i>
+            <span>AI Recommended Action</span>
+          </span>
+          <p id="audit-recommended-action" class="audit-action-text">
+            Use main arterial road with open commercial shops instead of inner gullies.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick-Tap Community Vouch System in Drawer -->
+      <div class="audit-vouch-section">
+        <div class="audit-vouch-header">
+          <i data-lucide="users"></i>
+          <span>Quick-Tap Community Vouch</span>
+        </div>
+        <p class="audit-vouch-desc">Are you currently near this street? Vouch for its condition to guide others:</p>
+        <div class="audit-vouch-actions">
+          <button type="button" id="btn-audit-confirm" class="btn-inspect btn-vouch-accurate" aria-label="Confirm report still accurate">
+            <i data-lucide="thumbs-up"></i>
+            <span>Still Accurate / Still Dark</span>
+          </button>
+          <button type="button" id="btn-audit-resolve" class="btn-inspect btn-vouch-resolved" aria-label="Mark report cleared or resolved">
+            <i data-lucide="check-circle-2"></i>
+            <span>Cleared / Resolved</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- Incident Reporting Sheet -->
   <section id="report-sheet" class="sheet report-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="report-title">

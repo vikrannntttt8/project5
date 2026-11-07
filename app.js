@@ -39,7 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
     callSeconds: 0,
     isCallPending: false,
     currentUser: null,
-    pendingReportLatLng: null
+    pendingReportLatLng: null,
+    isSafeCorridorActive: false,
+    corridorPolyline: null,
+    activeAuditData: null
   };
 
   // Inline SVG glyph paths for map pins (Lucide stroke format)
@@ -275,6 +278,37 @@ document.addEventListener("DOMContentLoaded", () => {
         setFilter(filter);
       });
     });
+
+    // Safe Corridor Night Walk Mode Toggle Button
+    const btnSafeCorridor = document.getElementById("btn-safe-corridor");
+    if (btnSafeCorridor) {
+      btnSafeCorridor.addEventListener("click", () => {
+        toggleSafeCorridor();
+      });
+    }
+
+    // Instant AI Safety Audit Drawer Close Button
+    const btnCloseAudit = document.getElementById("btn-close-audit");
+    if (btnCloseAudit) {
+      btnCloseAudit.addEventListener("click", () => {
+        closeSafetyAuditDrawer();
+      });
+    }
+
+    // Safety Audit Drawer Vouch Buttons
+    const btnAuditConfirm = document.getElementById("btn-audit-confirm");
+    if (btnAuditConfirm) {
+      btnAuditConfirm.addEventListener("click", () => {
+        onConfirm();
+      });
+    }
+
+    const btnAuditResolve = document.getElementById("btn-audit-resolve");
+    if (btnAuditResolve) {
+      btnAuditResolve.addEventListener("click", () => {
+        onResolve();
+      });
+    }
 
     // Search Input Form (Debounced live search + Form Submit)
     const searchForm = document.getElementById("search-form");
@@ -1008,6 +1042,27 @@ document.addEventListener("DOMContentLoaded", () => {
       circle.addTo(state.reportLayer);
     });
 
+    // Render Safe Corridor glowing route line if Night Walk Mode is active
+    if (state.isSafeCorridorActive) {
+      if (state.corridorPolyline && state.map) {
+        state.map.removeLayer(state.corridorPolyline);
+        state.corridorPolyline = null;
+      }
+
+      const safeReports = reports.filter(r => r.status === "safe" || (r.tags && r.tags.some(t => t.includes("Streetlights") || t.includes("Police") || t.includes("Crowd"))));
+      if (safeReports.length > 1) {
+        const sortedSafe = [...safeReports].sort((a, b) => a.lat - b.lat);
+        const latlngs = sortedSafe.map(r => [r.lat, r.lng]);
+        state.corridorPolyline = L.polyline(latlngs, {
+          color: "#10B981",
+          weight: 4,
+          opacity: 0.85,
+          dashArray: "10, 10",
+          className: "safe-corridor-line"
+        }).addTo(state.reportLayer);
+      }
+    }
+
     // Render pins
     reports.forEach(report => {
       const dim = store.isStale(report);
@@ -1017,6 +1072,12 @@ document.addEventListener("DOMContentLoaded", () => {
       marker.on("click", (e) => {
         L.DomEvent.stopPropagation(e);
         openInspect(report.id);
+        openSafetyAuditDrawer({
+          reportId: report.id,
+          lat: report.lat,
+          lng: report.lng,
+          areaName: report.areaName
+        });
       });
 
       marker.addTo(state.reportLayer);
@@ -1057,11 +1118,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const color = LEVEL_COLORS[status] || LEVEL_COLORS.safe;
     const glyphSvg = ICON_SVG[status === "safe" ? "shield-check" : (status === "caution" ? "triangle-alert" : "shield-alert")] || "";
 
-    const pulseHtml = status === "unsafe"
-      ? '<div class="pin-pulse pin-pulse-unsafe"></div>'
-      : (status === "caution" ? '<div class="pin-pulse pin-pulse-caution"></div>' : '');
+    let pulseHtml = "";
+    if (state.isSafeCorridorActive && status === "safe") {
+      pulseHtml = '<div class="pin-pulse corridor-beacon-halo"></div>';
+    } else if (status === "unsafe") {
+      pulseHtml = '<div class="pin-pulse pin-pulse-unsafe"></div>';
+    } else if (status === "caution") {
+      pulseHtml = '<div class="pin-pulse pin-pulse-caution"></div>';
+    }
 
-    const dimStyle = dim ? 'style="opacity: 0.55;"' : '';
+    let dimStyle = dim ? 'style="opacity: 0.55;"' : '';
+    if (state.isSafeCorridorActive && status !== "safe") {
+      dimStyle = 'style="opacity: 0.35;"';
+    }
+
     const unsafeClass = status === "unsafe" ? "jugnu-pin-wrap-unsafe" : "";
 
     const html = `
@@ -1107,10 +1177,61 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
+   * Toggles the Safe Corridor Night Walk mode, highlighting verified safe paths.
+   */
+  function toggleSafeCorridor() {
+    const mapEl = document.getElementById("map");
+    const corridorBtn = document.getElementById("btn-safe-corridor");
+
+    if (state.isSafeCorridorActive) {
+      state.isSafeCorridorActive = false;
+      state.currentFilter = "all";
+      if (mapEl) mapEl.classList.remove("safe-corridor-mode");
+      if (corridorBtn) {
+        corridorBtn.classList.remove("is-active");
+        corridorBtn.setAttribute("aria-pressed", "false");
+      }
+      const allPill = document.querySelector('#filter-bar .pill[data-filter="all"]');
+      if (allPill) allPill.classList.add("is-active");
+      showToast("Safe Corridor deactivated.");
+    } else {
+      state.isSafeCorridorActive = true;
+      state.currentFilter = "corridor";
+      if (mapEl) mapEl.classList.add("safe-corridor-mode");
+      if (corridorBtn) {
+        corridorBtn.classList.add("is-active");
+        corridorBtn.setAttribute("aria-pressed", "true");
+      }
+      const otherPills = document.querySelectorAll('#filter-bar .pill:not(#btn-safe-corridor)');
+      otherPills.forEach(p => p.classList.remove("is-active"));
+      showToast("Safe Corridor active: Illuminating verified safe paths & checkpoints.");
+    }
+
+    closeInspect();
+    renderReports();
+  }
+
+  /**
    * Updates the active filter pill and re-renders visible reports.
-   * @param {string} filter - "all" | "unsafe" | "caution" | "safe" | "night"
+   * @param {string} filter - "all" | "unsafe" | "caution" | "safe" | "night" | "corridor"
    */
   function setFilter(filter) {
+    if (filter === "corridor") {
+      toggleSafeCorridor();
+      return;
+    }
+
+    if (state.isSafeCorridorActive) {
+      state.isSafeCorridorActive = false;
+      const mapEl = document.getElementById("map");
+      if (mapEl) mapEl.classList.remove("safe-corridor-mode");
+      const corridorBtn = document.getElementById("btn-safe-corridor");
+      if (corridorBtn) {
+        corridorBtn.classList.remove("is-active");
+        corridorBtn.setAttribute("aria-pressed", "false");
+      }
+    }
+
     state.currentFilter = filter;
 
     const pills = document.querySelectorAll("#filter-bar .pill");
@@ -1222,6 +1343,14 @@ document.addEventListener("DOMContentLoaded", () => {
       trustEl.innerHTML = trustHtml;
     }
 
+    const trustCounterEl = document.getElementById("inspect-trust-counter");
+    if (trustCounterEl) {
+      const conf = report.confirmations || 1;
+      const res = report.resolvedCount || 0;
+      const pct = Math.min(99, Math.max(35, Math.round((conf / Math.max(1, conf + res)) * 100)));
+      trustCounterEl.textContent = `Community Trust Score: ${pct}% (${conf} vouches)`;
+    }
+
     updateInspectButtons(report);
     openSheet(inspectCard);
     refreshIcons();
@@ -1239,7 +1368,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Handles user tapping "Confirm Still True (+1)".
+   * Handles user tapping "Still Accurate / Still Dark (+1)".
    */
   async function onConfirm() {
     if (!state.activeReportId) return;
@@ -1251,13 +1380,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    showToast("Thanks. Confirmation added.");
+    showToast("Thanks! Community vouch recorded (+1).");
     openInspect(id);
+    if (state.activeAuditData) {
+      openSafetyAuditDrawer({ reportId: id });
+    }
     renderReports();
   }
 
   /**
-   * Handles user tapping "Mark Resolved".
+   * Handles user tapping "Cleared / Resolved".
    */
   async function onResolve() {
     if (!state.activeReportId) return;
@@ -1272,10 +1404,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (updated.resolvedCount >= 3) {
       showToast("Enough women confirmed this is resolved. Report removed.");
       closeInspect();
+      closeSafetyAuditDrawer();
       renderReports();
     } else {
-      showToast(`Thanks. Marked as resolved (${updated.resolvedCount} of 3).`);
+      showToast(`Thanks. Marked as cleared (${updated.resolvedCount} of 3).`);
       openInspect(id);
+      if (state.activeAuditData) {
+        openSafetyAuditDrawer({ reportId: id });
+      }
       renderReports();
     }
   }
@@ -1297,19 +1433,247 @@ document.addEventListener("DOMContentLoaded", () => {
     btnConfirm.classList.remove("is-voted");
     btnResolve.classList.remove("is-voted");
 
-    btnConfirm.innerHTML = `<i data-lucide="check"></i><span>Confirm Still True (+1)</span>`;
-    btnResolve.innerHTML = `<i data-lucide="badge-check"></i><span>Mark Resolved</span>`;
+    btnConfirm.innerHTML = `<i data-lucide="thumbs-up"></i><span>Still Accurate / Still Dark</span>`;
+    btnResolve.innerHTML = `<i data-lucide="check-circle-2"></i><span>Cleared / Resolved</span>`;
 
     if (vote === "confirm") {
       btnConfirm.disabled = true;
       btnResolve.disabled = true;
       btnConfirm.classList.add("is-voted");
-      btnConfirm.innerHTML = `<i data-lucide="check"></i><span>You confirmed</span>`;
+      btnConfirm.innerHTML = `<i data-lucide="thumbs-up"></i><span>You vouched accurate</span>`;
     } else if (vote === "resolve") {
       btnConfirm.disabled = true;
       btnResolve.disabled = true;
       btnResolve.classList.add("is-voted");
-      btnResolve.innerHTML = `<i data-lucide="check"></i><span>Marked resolved</span>`;
+      btnResolve.innerHTML = `<i data-lucide="check-circle-2"></i><span>Vouched cleared</span>`;
+    }
+  }
+
+  /* ==========================================================================
+     Section: Instant AI Safety Audit Side Drawer
+     ========================================================================== */
+
+  /**
+   * Generates dynamic AI Safety Audit data for a given location or pin.
+   * @param {Object} info - { reportId, lat, lng, areaName, category }
+   * @returns {Object} Structured audit data.
+   */
+  function generateSafetyAudit(info) {
+    const allReports = store.getAll().filter(r => r.resolvedCount < 3);
+    const targetLat = parseFloat(info.lat);
+    const targetLng = parseFloat(info.lng);
+
+    // Find nearby reports within ~2.5km
+    const nearby = allReports.filter(r => {
+      if (isNaN(targetLat) || isNaN(targetLng)) return false;
+      const dLat = Math.abs(r.lat - targetLat);
+      const dLng = Math.abs(r.lng - targetLng);
+      return Math.sqrt(dLat * dLat + dLng * dLng) < 0.028;
+    });
+
+    let primaryReport = null;
+    if (info.reportId) {
+      primaryReport = store.getById(info.reportId);
+    } else if (nearby.length > 0) {
+      primaryReport = nearby[0];
+    }
+
+    const areaName = info.areaName || (primaryReport ? primaryReport.areaName : "Selected Sector, Mumbai");
+
+    let status = primaryReport ? primaryReport.status : (nearby.length > 0 ? nearby[0].status : "safe");
+    let riskLevelText = "Low Risk Sector";
+    let riskClass = "text-safe";
+    let statusBadgeText = "Verified Safe";
+    let statusBadgeClass = "badge-safe";
+
+    if (status === "unsafe") {
+      riskLevelText = "High Risk Zone";
+      riskClass = "text-unsafe";
+      statusBadgeText = "Hazard Reported";
+      statusBadgeClass = "badge-unsafe";
+    } else if (status === "caution") {
+      riskLevelText = "Moderate Caution";
+      riskClass = "text-caution";
+      statusBadgeText = "Caution Advised";
+      statusBadgeClass = "badge-caution";
+    }
+
+    // Extract dynamic hazards
+    const hazards = [];
+    if (primaryReport) {
+      if (primaryReport.tags && primaryReport.tags.length > 0) {
+        primaryReport.tags.forEach(t => hazards.push(t));
+      }
+      if (primaryReport.note) {
+        hazards.push(primaryReport.note);
+      }
+    } else if (nearby.length > 0) {
+      nearby.forEach(r => {
+        if (r.tags && r.tags.length > 0) {
+          r.tags.forEach(t => {
+            if (!hazards.includes(t)) hazards.push(t);
+          });
+        }
+      });
+    }
+
+    // Fallback hazards if empty
+    if (hazards.length === 0) {
+      if (status === "unsafe") {
+        hazards.push("Broken or unpowered municipal streetlights after 9 PM.");
+        hazards.push("Narrow isolated lane with thin pedestrian traffic.");
+      } else if (status === "caution") {
+        hazards.push("Intermittent streetlight flickering; secondary lighting from storefronts.");
+        hazards.push("Crowd thins out significantly post 10:30 PM.");
+      } else {
+        hazards.push("Active municipal streetlights operating with steady power.");
+        hazards.push("Continuous commercial presence with auto stands and pedestrians.");
+      }
+    }
+
+    // Dynamic AI Recommended Action
+    let recommendedAction = "";
+    if (status === "unsafe") {
+      recommendedAction = "Avoid inner gullies and unlit subways after 9 PM. Divert to the nearest primary arterial road with active streetlights and transit booths.";
+    } else if (status === "caution") {
+      recommendedAction = "Stay on the central lane with operational storefronts. Avoid poorly lit turns behind pillars; walk in groups or keep location sharing active.";
+    } else {
+      recommendedAction = "Verified community safe passage. Recommended well-lit route with active security personnel, CCTV coverage, and late-night shops.";
+    }
+
+    // Trust Score calculation
+    const confirmations = primaryReport ? (primaryReport.confirmations || 1) : 8;
+    const resolvedCount = primaryReport ? (primaryReport.resolvedCount || 0) : 0;
+    const totalVotes = confirmations + resolvedCount;
+    const trustPercent = Math.min(99, Math.max(35, Math.round((confirmations / Math.max(1, totalVotes)) * 100)));
+
+    return {
+      areaName,
+      status,
+      riskLevelText,
+      riskClass,
+      statusBadgeText,
+      statusBadgeClass,
+      reportCount: nearby.length > 0 ? nearby.length : (primaryReport ? 1 : 0),
+      hazards,
+      recommendedAction,
+      trustPercent,
+      confirmations,
+      reportId: primaryReport ? primaryReport.id : null
+    };
+  }
+
+  /**
+   * Opens the Instant AI Safety Audit Side Drawer with populated brief.
+   * @param {Object} info - Target location info.
+   */
+  function openSafetyAuditDrawer(info) {
+    const drawer = document.getElementById("safety-audit-drawer");
+    if (!drawer) return;
+
+    const data = generateSafetyAudit(info);
+    state.activeAuditData = data;
+    if (data.reportId) {
+      state.activeReportId = data.reportId;
+    }
+
+    const titleEl = document.getElementById("audit-area-title");
+    const statusBadgeEl = document.getElementById("audit-status-badge");
+    const countTextEl = document.getElementById("audit-reports-count-text");
+    const riskLevelEl = document.getElementById("audit-risk-level");
+    const trustScoreEl = document.getElementById("audit-trust-score");
+    const hazardsListEl = document.getElementById("audit-hazards-list");
+    const actionEl = document.getElementById("audit-recommended-action");
+
+    if (titleEl) titleEl.textContent = data.areaName;
+    if (statusBadgeEl) {
+      statusBadgeEl.className = "inspect-badge " + data.statusBadgeClass;
+      statusBadgeEl.textContent = data.statusBadgeText;
+    }
+    if (countTextEl) {
+      countTextEl.textContent = `${data.reportCount} Active Report${data.reportCount === 1 ? '' : 's'} in Sector`;
+    }
+    if (riskLevelEl) {
+      riskLevelEl.className = "metric-val " + data.riskClass;
+      riskLevelEl.textContent = data.riskLevelText;
+    }
+    if (trustScoreEl) {
+      trustScoreEl.textContent = `${data.trustPercent}% Trust (${data.confirmations} vouches)`;
+    }
+
+    if (hazardsListEl) {
+      hazardsListEl.innerHTML = "";
+      data.hazards.slice(0, 4).forEach(h => {
+        const li = document.createElement("li");
+        li.textContent = h;
+        hazardsListEl.appendChild(li);
+      });
+    }
+
+    if (actionEl) {
+      actionEl.textContent = data.recommendedAction;
+    }
+
+    // Update vouch buttons in drawer
+    updateAuditVouchButtons(data.reportId);
+
+    drawer.classList.remove("hidden");
+    void drawer.offsetWidth;
+    drawer.classList.add("is-open");
+    refreshIcons();
+  }
+
+  /**
+   * Closes the Instant AI Safety Audit Side Drawer.
+   */
+  function closeSafetyAuditDrawer() {
+    state.activeAuditData = null;
+    const drawer = document.getElementById("safety-audit-drawer");
+    if (!drawer) return;
+    drawer.classList.remove("is-open");
+    setTimeout(() => {
+      drawer.classList.add("hidden");
+    }, 280);
+  }
+
+  /**
+   * Updates state of vouch buttons inside the Safety Audit Drawer.
+   * @param {string|null} reportId
+   */
+  function updateAuditVouchButtons(reportId) {
+    const btnConfirm = document.getElementById("btn-audit-confirm");
+    const btnResolve = document.getElementById("btn-audit-resolve");
+    if (!btnConfirm || !btnResolve) return;
+
+    if (!reportId) {
+      btnConfirm.disabled = false;
+      btnResolve.disabled = false;
+      btnConfirm.classList.remove("is-voted");
+      btnResolve.classList.remove("is-voted");
+      btnConfirm.innerHTML = `<i data-lucide="thumbs-up"></i><span>Still Accurate / Still Dark</span>`;
+      btnResolve.innerHTML = `<i data-lucide="check-circle-2"></i><span>Cleared / Resolved</span>`;
+      return;
+    }
+
+    const vote = store.getVote(reportId);
+    btnConfirm.disabled = false;
+    btnResolve.disabled = false;
+    btnConfirm.classList.remove("is-voted");
+    btnResolve.classList.remove("is-voted");
+
+    btnConfirm.innerHTML = `<i data-lucide="thumbs-up"></i><span>Still Accurate / Still Dark</span>`;
+    btnResolve.innerHTML = `<i data-lucide="check-circle-2"></i><span>Cleared / Resolved</span>`;
+
+    if (vote === "confirm") {
+      btnConfirm.disabled = true;
+      btnResolve.disabled = true;
+      btnConfirm.classList.add("is-voted");
+      btnConfirm.innerHTML = `<i data-lucide="thumbs-up"></i><span>You vouched accurate</span>`;
+    } else if (vote === "resolve") {
+      btnConfirm.disabled = true;
+      btnResolve.disabled = true;
+      btnResolve.classList.add("is-voted");
+      btnResolve.innerHTML = `<i data-lucide="check-circle-2"></i><span>Vouched cleared</span>`;
     }
   }
 
@@ -2821,13 +3185,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const targetZoom = item.category === "gully" ? 17 : 16;
     state.map.flyTo([lat, lon], targetZoom, { duration: 1.5 });
 
-    // If report item, open inspection card
-    if (item.category === "report" && item.reportId) {
-      setTimeout(() => {
+    // Automatically trigger Instant AI Safety Audit Side Drawer for searched gully or location
+    setTimeout(() => {
+      openSafetyAuditDrawer({
+        lat: lat,
+        lng: lon,
+        areaName: item.primaryName || item.displayName,
+        category: item.category,
+        reportId: item.reportId
+      });
+      if (item.category === "report" && item.reportId) {
         openInspect(item.reportId);
-      }, 700);
-      return;
-    }
+      }
+    }, 600);
 
     // Show temporary amber/emerald locator ring marker for 6 seconds
     if (state.searchRingMarker) {
@@ -3279,6 +3649,7 @@ document.addEventListener("DOMContentLoaded", () => {
    * Closes all active sheets, inspection cards, and scrim.
    */
   function closeAllOverlays() {
+    state.activeAuditData = null;
     const landingOverlay = document.getElementById("landing-overlay");
     if (landingOverlay && !landingOverlay.classList.contains("hidden")) {
       dismissLandingOverlay();
