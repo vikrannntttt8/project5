@@ -2095,7 +2095,7 @@ html, body {
 }
 
 /* ==========================================================================
-   14. Animated Intro & Landing Frontpage Overlay
+   14. Animated Intro & Landing Frontpage Overlay (High-End SaaS Hero Style)
    ========================================================================== */
 .landing-overlay {
   position: fixed;
@@ -2122,17 +2122,18 @@ html, body {
   opacity: 0;
 }
 
+.landing-overlay.is-closing .saas-hero-card,
 .landing-overlay.is-closing .landing-card {
-  transform: translateY(24px) scale(0.96);
+  transform: translateY(20px) scale(0.96);
   opacity: 0;
 }
 
 .landing-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(9, 9, 11, 0.86);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  background: rgba(2, 6, 23, 0.90);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   animation: landingFadeIn 320ms ease-out;
 }
 
@@ -2140,371 +2141,306 @@ html, body {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 720px;
+  max-width: 740px;
   margin: auto;
 }
 
-.landing-card {
+.saas-hero-card {
   position: relative;
-  background: linear-gradient(160deg, #18181B 0%, #0F172A 100%);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 24px;
-  box-shadow: 0 25px 70px -12px rgba(0, 0, 0, 0.9), 0 0 35px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  padding: 24px 20px;
+  background: linear-gradient(175deg, rgba(15, 23, 42, 0.94) 0%, rgba(2, 6, 23, 0.98) 100%);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 26px;
+  box-shadow: 0 35px 100px -15px rgba(0, 0, 0, 0.95), 0 0 50px -10px rgba(16, 185, 129, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 28px 20px;
   display: flex;
   flex-direction: column;
   gap: 22px;
-  max-height: calc(92dvh - 20px);
+  max-height: calc(94dvh - 20px);
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: landingSlideUp 380ms cubic-bezier(0.16, 1, 0.3, 1);
   transition: transform 260ms ease-out, opacity 260ms ease-out;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Neon Top Glow Border */
-.landing-card::before {
+/* Ambient Radial Top Glow */
+.saas-hero-card::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #10B981 50%, transparent);
-  border-radius: 2px;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(35px);
+  border-radius: 50%;
 }
 
-.landing-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.landing-brand-tag {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.landing-brand-icon {
+/* Minimalist Top-Right Ghost Close Button */
+.saas-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 182, 212, 0.2) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: var(--safe);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
-}
-
-.landing-brand-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.landing-brand-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.landing-brand-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.landing-brand-pill {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.14);
-  color: var(--safe);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.landing-close-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94A3B8;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+  z-index: 20;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease, border-color 150ms ease;
 }
 
-.landing-close-btn:hover, .landing-close-btn:focus-visible {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.1);
+.saas-close-btn:hover, .saas-close-btn:focus-visible {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
-/* 1. Hero Section */
-.landing-hero-section {
+.saas-close-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 1. Top Badge */
+.saas-badge-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: center;
+  width: 100%;
 }
 
-.landing-hero-badge {
+.saas-hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 4px 10px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  gap: 8px;
+  padding: 6px 16px;
   border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--safe);
-}
-
-.landing-hero-badge svg {
-  width: 14px;
-  height: 14px;
-}
-
-.landing-hero-title {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-  color: var(--text);
-}
-
-.landing-hero-lead {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
-.landing-hero-lead strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.landing-hero-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.hero-feature-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #D4D4D8;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.hero-feature-item svg {
-  width: 15px;
-  height: 15px;
-  color: var(--safe);
-}
-
-/* 2. How to Use Section */
-.landing-steps-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.landing-steps-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.landing-steps-subtitle {
+  background: rgba(16, 185, 129, 0.09);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  color: #34D399;
+  font-family: var(--font-heading);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--safe);
   text-transform: uppercase;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.landing-steps-heading {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
+.saas-hero-badge svg {
+  width: 14px;
+  height: 14px;
+  stroke: #34D399;
+  stroke-width: 2.2;
 }
 
-.landing-steps-grid {
+/* 2. Hero Header */
+.saas-hero-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.saas-hero-title {
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 4.2vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-align: center;
+  color: #F8FAFC;
+  text-rendering: optimizeLegibility;
+}
+
+.saas-hero-sub {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  color: #94A3B8;
+  text-align: center;
+}
+
+/* 3. Bento-Style Grid */
+.saas-bento-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
+  margin-top: 4px;
 }
 
 @media (min-width: 640px) {
-  .landing-card {
-    padding: 32px 28px;
-    gap: 24px;
+  .saas-hero-card {
+    padding: 38px 36px 32px 36px;
+    gap: 26px;
   }
-  .landing-hero-title {
-    font-size: 28px;
-  }
-  .landing-steps-grid {
+  .saas-bento-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
 }
 
-.landing-step-card {
-  background: rgba(28, 28, 33, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 16px;
-  padding: 16px 14px;
+.saas-bento-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(51, 65, 85, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
-.landing-step-card:hover {
+.saas-bento-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.landing-step-top {
+.saas-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.landing-step-num {
+.saas-card-step {
   font-family: var(--font-heading);
   font-size: 12px;
   font-weight: 800;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  color: #64748B;
 }
 
-.landing-step-icon-wrap {
-  width: 34px;
-  height: 34px;
+.saas-icon-box {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
 }
 
-.landing-step-icon-wrap.icon-safe {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: var(--safe);
+.saas-icon-box.icon-emerald {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.15);
 }
 
-.landing-step-icon-wrap.icon-caution {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
-  color: var(--caution);
+.saas-icon-box.icon-amber {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.15);
 }
 
-.landing-step-icon-wrap.icon-contribute {
-  background: rgba(6, 182, 212, 0.15);
-  border-color: rgba(6, 182, 212, 0.3);
+.saas-icon-box.icon-cyan {
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(6, 182, 212, 0.35);
   color: #22D3EE;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.15);
 }
 
-.landing-step-icon-wrap svg {
+.saas-icon-box svg {
   width: 18px;
   height: 18px;
 }
 
-.landing-step-title {
+.saas-card-title {
+  font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 700;
-  color: var(--text);
+  color: #F1F5F9;
   line-height: 1.35;
 }
 
-.landing-step-text {
+.saas-card-desc {
   font-size: 13px;
-  color: var(--text-muted);
   line-height: 1.5;
+  color: #94A3B8;
 }
 
-/* Action Footer */
-.landing-footer {
+/* 4. Action Footer & Glowing Primary CTA Button */
+.saas-hero-footer {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
   margin-top: 4px;
 }
 
-.btn-landing-primary {
+.btn-saas-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
+  max-width: 320px;
   min-height: 52px;
-  padding: 14px 24px;
+  padding: 14px 28px;
   background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: #09090B;
-  border: none;
-  border-radius: var(--radius);
+  color: #020617;
   font-family: var(--font-heading);
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4), 0 0 35px rgba(16, 185, 129, 0.2);
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
-  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), filter 180ms ease;
 }
 
-.btn-landing-primary:hover, .btn-landing-primary:focus-visible {
+.btn-saas-primary:hover, .btn-saas-primary:focus-visible {
   filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.55), 0 0 45px rgba(16, 185, 129, 0.35);
 }
 
-.btn-landing-primary svg {
+.btn-saas-primary svg {
   width: 18px;
   height: 18px;
-  stroke: #09090B;
+  stroke: #020617;
+  stroke-width: 2.2;
+  transition: transform 150ms ease;
 }
 
-.landing-footer-note {
+.btn-saas-primary:hover svg {
+  transform: translateX(4px);
+}
+
+.saas-footer-note {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #64748B;
   text-align: center;
 }
 
-.landing-footer-note svg {
+.saas-footer-note svg {
   width: 16px;
   height: 16px;
   color: var(--safe);
   flex-shrink: 0;
 }
 
-/* Entrance & Glow Keyframes */
+/* Entrance Keyframes */
 @keyframes landingFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

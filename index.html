@@ -111,113 +111,86 @@
     </button>
   </aside>
 
-  <!-- Animated Intro & Landing Frontpage Overlay -->
+  <!-- Animated Intro & Landing Frontpage Overlay (High-End SaaS Hero Style) -->
   <div id="landing-overlay" class="landing-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="landing-hero-title">
     <div class="landing-backdrop" id="landing-backdrop"></div>
     <div class="landing-modal-container px-4 sm:px-6">
-      <div class="landing-card">
-        <!-- Top Row: Brand & Close Button -->
-        <div class="landing-top-row">
-          <div class="landing-brand-tag">
-            <div class="landing-brand-icon" aria-hidden="true">
-              <i data-lucide="sparkles"></i>
-            </div>
-            <div class="landing-brand-meta">
-              <span class="landing-brand-title">JUGNU</span>
-              <span class="landing-brand-pill">Safety Map</span>
-            </div>
+      <div class="landing-card saas-hero-card">
+        <!-- Close Button (Top-Right Minimalist Ghost) -->
+        <button type="button" id="btn-landing-close" class="landing-close-btn saas-close-btn" aria-label="Close intro modal">
+          <i data-lucide="x"></i>
+        </button>
+
+        <!-- Top Glowing Pill Badge -->
+        <div class="saas-badge-wrap">
+          <div class="saas-hero-badge">
+            <i data-lucide="sparkles"></i>
+            <span>JUGNU • COMMUNITY SAFETY MAP</span>
           </div>
-          <button type="button" id="btn-landing-close" class="landing-close-btn" aria-label="Close intro modal">
-            <i data-lucide="x"></i>
-          </button>
         </div>
 
-        <!-- 1. Hero Section: What is Jugnu? -->
-        <div class="landing-hero-section">
-          <div class="landing-hero-badge">
-            <i data-lucide="shield-check"></i>
-            <span>Community-Driven Safety</span>
-          </div>
-          <h1 id="landing-hero-title" class="landing-hero-title">
+        <!-- Hero Section: Centered Typography & Mission Statement -->
+        <div class="saas-hero-header">
+          <h1 id="landing-hero-title" class="saas-hero-title">
             Know the street before you step onto it.
           </h1>
-          <p class="landing-hero-lead">
-            <strong>What is Jugnu?</strong> A community-driven safety map for crowdsourced risk visualization and verified safe routing. Check real-time street illumination, open shops, crowd levels, and street hazard warnings before walking through unfamiliar lanes and gullies.
+          <p class="saas-hero-sub">
+            A community-driven safety map for crowdsourced risk visualization and verified safe routing. Check real-time street illumination, open shops, crowd levels, and street hazard warnings before walking through unfamiliar lanes and gullies.
           </p>
-          <div class="landing-hero-features">
-            <div class="hero-feature-item">
-              <i data-lucide="eye"></i>
-              <span>Crowdsourced Risk Visualization</span>
+        </div>
+
+        <!-- Feature / Step Cards: Bento-Style Grid -->
+        <div class="saas-bento-grid">
+          <!-- Step Card 01 -->
+          <div class="saas-bento-card">
+            <div class="saas-card-top">
+              <span class="saas-card-step">01</span>
+              <div class="saas-icon-box icon-emerald">
+                <i data-lucide="map-pin"></i>
+              </div>
             </div>
-            <div class="hero-feature-item">
-              <i data-lucide="navigation"></i>
-              <span>Verified Safe Routing</span>
+            <h3 class="saas-card-title">1. Explore community safety pins</h3>
+            <p class="saas-card-desc">
+              Browse street-level reports across stations, gullies, chawls, and bus stops with verified lighting conditions, open shops, and police presence.
+            </p>
+          </div>
+
+          <!-- Step Card 02 -->
+          <div class="saas-bento-card">
+            <div class="saas-card-top">
+              <span class="saas-card-step">02</span>
+              <div class="saas-icon-box icon-amber">
+                <i data-lucide="sliders-horizontal"></i>
+              </div>
             </div>
-            <div class="hero-feature-item">
-              <i data-lucide="shield"></i>
-              <span>100% Anonymous & Privacy-First</span>
+            <h3 class="saas-card-title">2. Filter by Caution/Unsafe zones</h3>
+            <p class="saas-card-desc">
+              Filter by Caution (dim streetlights, empty turns) or Unsafe zones (pitch dark, stalking alerts) to map out your safest commute path home.
+            </p>
+          </div>
+
+          <!-- Step Card 03 -->
+          <div class="saas-bento-card">
+            <div class="saas-card-top">
+              <span class="saas-card-step">03</span>
+              <div class="saas-icon-box icon-cyan">
+                <i data-lucide="shield-alert"></i>
+              </div>
             </div>
+            <h3 class="saas-card-title">3. Contribute verified local updates</h3>
+            <p class="saas-card-desc">
+              Tap anywhere on the map or press Report to alert others of dark gullies, or confirm existing pins with a single tap to build community trust.
+            </p>
           </div>
         </div>
 
-        <!-- 2. How to Use It: 3 Clear Step-by-Step Visual Cards -->
-        <div class="landing-steps-section">
-          <div class="landing-steps-header">
-            <span class="landing-steps-subtitle">GET STARTED IN 3 STEPS</span>
-            <h2 class="landing-steps-heading">How to Use Jugnu</h2>
-          </div>
-          <div class="landing-steps-grid">
-            <!-- Step Card 1 -->
-            <div class="landing-step-card">
-              <div class="landing-step-top">
-                <span class="landing-step-num">01</span>
-                <div class="landing-step-icon-wrap icon-safe">
-                  <i data-lucide="map-pin"></i>
-                </div>
-              </div>
-              <h3 class="landing-step-title">1. Explore community safety pins</h3>
-              <p class="landing-step-text">
-                Browse street-level reports across stations, gullies, chawls, and bus stops with verified lighting conditions, open shops, and police presence.
-              </p>
-            </div>
-
-            <!-- Step Card 2 -->
-            <div class="landing-step-card">
-              <div class="landing-step-top">
-                <span class="landing-step-num">02</span>
-                <div class="landing-step-icon-wrap icon-caution">
-                  <i data-lucide="sliders-horizontal"></i>
-                </div>
-              </div>
-              <h3 class="landing-step-title">2. Filter by Caution/Unsafe zones</h3>
-              <p class="landing-step-text">
-                Filter by Caution (dim streetlights, empty turns) or Unsafe zones (pitch dark, stalking alerts) to map out your safest commute path home.
-              </p>
-            </div>
-
-            <!-- Step Card 3 -->
-            <div class="landing-step-card">
-              <div class="landing-step-top">
-                <span class="landing-step-num">03</span>
-                <div class="landing-step-icon-wrap icon-contribute">
-                  <i data-lucide="shield-alert"></i>
-                </div>
-              </div>
-              <h3 class="landing-step-title">3. Contribute verified local updates</h3>
-              <p class="landing-step-text">
-                Tap anywhere on the map or press Report to alert others of dark gullies, or confirm existing pins with a single tap to build community trust.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action CTA & Dismiss Footer -->
-        <div class="landing-footer">
-          <button type="button" id="btn-landing-dismiss" class="btn-landing-primary">
-            <span>Got it / Explore Map</span>
+        <!-- Action Footer with Glowing Primary CTA Button -->
+        <div class="saas-hero-footer">
+          <button type="button" id="btn-landing-dismiss" class="btn-saas-primary">
+            <span>Explore Live Map</span>
             <i data-lucide="arrow-right"></i>
           </button>
-          <p class="landing-footer-note">
+          <p class="saas-footer-note">
             <i data-lucide="info"></i>
             <span>Emergency tools (WhatsApp SOS & Fake Exit Call) are accessible anytime from the bottom dock.</span>
           </p>
