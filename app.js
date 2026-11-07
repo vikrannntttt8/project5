@@ -183,10 +183,6 @@ document.addEventListener("DOMContentLoaded", () => {
         openSheet(document.getElementById("auth-modal"));
       });
     }
-        dismissLandingOverlay(false);
-        openSheet(document.getElementById("auth-modal"));
-      });
-    }
 
     // Top-Right About / Guide Button
     const btnOpenIntro = document.getElementById("btn-open-intro");
